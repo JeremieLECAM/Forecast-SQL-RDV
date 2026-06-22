@@ -262,7 +262,6 @@
         </div>
       </div>
       <div class="top-actions">
-        <button class="btn dark" id="resetDemoBtn" type="button">Tests</button>
         <button class="btn dark" id="topExportCsvBtn" type="button">Export to CSV</button>
         <button class="btn dark" id="exportJsonBtn" type="button">JSON</button>
         <label class="btn dark" for="importJson" style="cursor:pointer;">Importer</label>
@@ -495,10 +494,7 @@
     function companyClassForStatus(status){ const s=norm(normalizeStatusValue(status)); if(s==='sql' || s==='sql to nurture') return 'company-sql'; if(s==='rdv') return 'company-rdv'; if(s==='chaud') return 'company-chaud'; if(s==='a relancer') return 'company-relance'; return ''; }
     function statusColor(status){ const s=norm(normalizeStatusValue(status)); if(s==='sql' || s==='sql to nurture') return '#2e7d32'; if(s==='rdv') return '#0d6efd'; if(s==='chaud') return '#FF7900'; if(s==='a relancer') return '#f39c12'; return '#7E57C2'; }
 
-    const demoRows = [
-      { id: uid(), company:'Test 1', owner:'', product:'LT', notes:'', qualDate:'', nextAction:'', nextStep:'', status:'SQL', statusCustom:'', weight:'1', selected:false, createdAt: Date.now()-2 },
-      { id: uid(), company:'Test 2', owner:'', product:'BC', notes:'', qualDate:'', nextAction:'', nextStep:'', status:'A relancer', statusCustom:'', weight:'0.25', selected:false, createdAt: Date.now()-1 }
-    ];
+    const demoRows = [];
 
     function defaultForecastMeta(){ return { global:{sql:0,rdv:0,chaud:0,relance:0} }; }
     function defaultFilters(){ return { companyMode:'contains', companyValue:'', products:[...PRODUCTS], notesMode:'contains', notesValue:'', qualDate:'', sortQual:false, nextActionMode:'contains', nextActionValue:'', nextStep:'', sortNextStep:false, statusMode:'contains', statusValue:'', weights:[...WEIGHTS] }; }
@@ -705,7 +701,7 @@
 
     const savedFileSync=read(FILESYNC, null);
     const state = { rows: read(STORAGE, demoRows), filters: read(FILTERS, defaultFilters()), forecastMeta: read(FORECAST_META, defaultForecastMeta()), selectedId:null, activeTab:'tabTableau', calView:'month', calDate:new Date(), fileSync:{ handle:null, linked:false, manualOnly:false, name:(savedFileSync&&savedFileSync.name)||'', format:(savedFileSync&&savedFileSync.format)||'', lastModified:(savedFileSync&&savedFileSync.lastModified)||0, lastSize:(savedFileSync&&savedFileSync.lastSize)||0, pollId:null, busy:false, suspendAutosave:false, lastSavedSignature:(savedFileSync&&savedFileSync.lastSavedSignature)||'', skipWatchUntil:0, supportsFs:(typeof window!=='undefined' && 'showOpenFilePicker' in window), hasObserver:(typeof window!=='undefined' && 'FileSystemObserver' in window), watchMode:'polling' } };
-    if(!Array.isArray(state.rows) || state.rows.length===0) state.rows = JSON.parse(JSON.stringify(demoRows));
+    if(!Array.isArray(state.rows)) state.rows = JSON.parse(JSON.stringify(demoRows));
     state.rows = state.rows.map(r => ({ ...r, status: normalizeStatusValue(r.status), statusCustom: '', weight: autoWeightForStatus(r.status), selected: !!r.selected, createdAt: r.createdAt || Date.now() }));
     state.forecastMeta = state.forecastMeta && typeof state.forecastMeta==='object' ? state.forecastMeta : defaultForecastMeta();
     if(!state.forecastMeta.global) state.forecastMeta.global={sql:0,rdv:0,chaud:0,relance:0}; ['sql','rdv','chaud','relance'].forEach(section=>{ if(typeof state.forecastMeta.global[section] !== 'number') state.forecastMeta.global[section]=0; });
@@ -960,7 +956,6 @@
       document.getElementById('exportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows()));
       document.getElementById('topExportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows()));
       document.getElementById('exportJsonBtn').addEventListener('click',()=>exportJSON(state.rows));
-      document.getElementById('resetDemoBtn').addEventListener('click',()=>{ state.rows=JSON.parse(JSON.stringify(demoRows)); state.filters=defaultFilters(); state.forecastMeta=defaultForecastMeta(); state.selectedId=null; resetForm(); save(); render(); closeDrawer(); closeForm(); });
       document.getElementById('importJson').addEventListener('change',(e)=>{ const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{ try{ const data=JSON.parse(reader.result); if(!Array.isArray(data)) throw new Error('invalid'); state.rows=data.map(item=>{ const mappedStatus=normalizeStatusValue(item.status||''); return ({ id:item.id||uid(), company:item.company||'', owner:item.owner||'', product:item.product||'', notes:item.notes||'', qualDate:item.qualDate||'', nextAction:item.nextAction||'', nextStep:item.nextStep||'', status:mappedStatus, statusCustom:'', weight:autoWeightForStatus(mappedStatus) || '', selected:!!item.selected, createdAt:item.createdAt||Date.now() }); }); state.filters=defaultFilters(); state.forecastMeta=defaultForecastMeta(); state.selectedId=null; resetForm(); save(); render(); } catch(err){ alert('Le JSON importé est invalide.'); } }; reader.readAsText(file,'utf-8'); e.target.value=''; });
       document.getElementById('linkDataBtn').addEventListener('click', async ()=>{ try{ await linkDataFileViaPicker(); }catch(err){ if(err && err.name!=='AbortError') alert('Impossible de lier le fichier : '+(err.message||err)); } });
       document.getElementById('refreshDataBtn').addEventListener('click', async ()=>{ try{ await refreshDataFromLinkedFile(false); }catch(err){ alert('Impossible de recharger le fichier : '+(err.message||err)); } });
