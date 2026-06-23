@@ -617,7 +617,8 @@ async function saveRowToSupabase(row) {
 
   const dbRow = {
     ...toDbRow(row),
-    updated_by: email || ''
+    updated_by: email || '',
+    updated_at: new Date().toISOString()
   };
 
   const { error } = await sb
@@ -627,7 +628,10 @@ async function saveRowToSupabase(row) {
   if (error) {
     console.error(error);
     alert('Impossible de sauvegarder dans Supabase : ' + error.message);
+    return false;
   }
+
+  return true;
 }
 
 async function deleteRowFromSupabase(id) {
@@ -639,7 +643,10 @@ async function deleteRowFromSupabase(id) {
   if (error) {
     console.error(error);
     alert('Impossible de supprimer dans Supabase : ' + error.message);
+    return false;
   }
+
+  return true;
 }
 
 function startSupabaseRealtime() {
@@ -724,7 +731,31 @@ async function initSupabaseDashboard() {
     function applyAutoWeightFromStatus(){ const status=document.getElementById('status').value; document.getElementById('weight').value=autoWeightForStatus(status); }
     function fillForm(r, open=true){ document.getElementById('recordId').value=r.id || ''; document.getElementById('company').value=r.company || ''; document.getElementById('product').value=r.product || ''; document.getElementById('notes').value=r.notes || ''; document.getElementById('qualDate').value=r.qualDate || ''; document.getElementById('nextAction').value=r.nextAction || ''; document.getElementById('nextStep').value=r.nextStep || ''; document.getElementById('status').value=normalizeStatusValue(r.status) || ''; document.getElementById('weight').value=autoWeightForStatus(r.status); if(open) openForm(); }
     function resetForm(){ document.getElementById('oppForm').reset(); document.getElementById('recordId').value=''; document.getElementById('product').value=''; document.getElementById('status').value=''; applyAutoWeightFromStatus(); }
-    function renderTable(rows){ const tbody=document.getElementById('tbody'); document.getElementById('rowCount').textContent=`${rows.length} ligne${rows.length>1?'s':''}`; tbody.innerHTML=''; const checkAll=document.getElementById('checkAllVisible'); const allChecked = rows.length && rows.every(r=>r.selected); checkAll.checked=!!allChecked; checkAll.indeterminate = rows.some(r=>r.selected) && !allChecked; rows.forEach(r=>{ const tr=document.createElement('tr'); if(state.selectedId===r.id) tr.classList.add('selected'); tr.innerHTML=`<td class="cell-checkbox"><input class="row-check" data-id="${esc(r.id)}" type="checkbox" ${r.selected ? 'checked' : ''}></td><td><strong class="${companyClassForStatus(r.status)}">${esc(r.company||'—')}</strong></td><td>${r.product ? `<span class="pill" style="background:#fafafa;color:#000;border-color:#ddd;">${esc(r.product)}</span>` : '—'}</td><td>${esc(r.notes||'—')}</td><td>${formatDate(r.qualDate)}</td><td>${esc(r.nextAction||'—')}</td><td>${formatDate(r.nextStep)}</td><td><span class="pill ${badgeClass(displayStatus(r))}">${esc(displayStatus(r))}</span></td><td><strong>${r.weight ? niceWeight(r.weight) : '—'}</strong></td><td><button class="btn icon danger delete-row-btn" type="button" data-id="${esc(r.id)}" title="Supprimer cette ligne">✕</button></td>`; tr.addEventListener('click',(e)=>{ if(e.target && (e.target.classList.contains('row-check') || e.target.classList.contains('delete-row-btn'))) return; state.selectedId=r.id; fillForm(r,true); save(); render(); }); tbody.appendChild(tr); }); tbody.querySelectorAll('.row-check').forEach(cb=>{ cb.addEventListener('click',e=>e.stopPropagation()); cb.addEventListener('change',()=>{ const row=state.rows.find(x=>x.id===cb.dataset.id); if(row) row.selected=cb.checked; save(); render(); }); }); tbody.querySelectorAll('.delete-row-btn').forEach(btn=>{ btn.addEventListener('click',(e)=>{ e.stopPropagation(); const id=btn.dataset.id; state.rows=state.rows.filter(r=>r.id!==id); if(state.selectedId===id) state.selectedId=null; save(); render(); }); }); if(!rows.length){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="10" style="padding:18px 10px;text-align:center;color:#666;">Aucune opportunité ne correspond aux filtres actuels.</td>'; tbody.appendChild(tr); } }
+    function renderTable(rows){ const tbody=document.getElementById('tbody'); document.getElementById('rowCount').textContent=`${rows.length} ligne${rows.length>1?'s':''}`; tbody.innerHTML=''; const checkAll=document.getElementById('checkAllVisible'); const allChecked = rows.length && rows.every(r=>r.selected); checkAll.checked=!!allChecked; checkAll.indeterminate = rows.some(r=>r.selected) && !allChecked; rows.forEach(r=>{ const tr=document.createElement('tr'); if(state.selectedId===r.id) tr.classList.add('selected'); tr.innerHTML=`<td class="cell-checkbox"><input class="row-check" data-id="${esc(r.id)}" type="checkbox" ${r.selected ? 'checked' : ''}></td><td><strong class="${companyClassForStatus(r.status)}">${esc(r.company||'—')}</strong></td><td>${r.product ? `<span class="pill" style="background:#fafafa;color:#000;border-color:#ddd;">${esc(r.product)}</span>` : '—'}</td><td>${esc(r.notes||'—')}</td><td>${formatDate(r.qualDate)}</td><td>${esc(r.nextAction||'—')}</td><td>${formatDate(r.nextStep)}</td><td><span class="pill ${badgeClass(displayStatus(r))}">${esc(displayStatus(r))}</span></td><td><strong>${r.weight ? niceWeight(r.weight) : '—'}</strong></td><td><button class="btn icon danger delete-row-btn" type="button" data-id="${esc(r.id)}" title="Supprimer cette ligne">✕</button></td>`; tr.addEventListener('click',(e)=>{ if(e.target && (e.target.classList.contains('row-check') || e.target.classList.contains('delete-row-btn'))) return; state.selectedId=r.id; fillForm(r,true); save(); render(); }); tbody.appendChild(tr); }); tbody.querySelectorAll('.row-check').forEach(cb=>{ cb.addEventListener('click',e=>e.stopPropagation()); cb.addEventListener('change',()=>{ const row=state.rows.find(x=>x.id===cb.dataset.id); if(row) row.selected=cb.checked; save(); render(); }); });tbody.querySelectorAll('.delete-row-btn').forEach(btn => {
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+
+    const id = btn.dataset.id;
+    if (!id) return;
+
+    if (!confirm('Supprimer cette ligne ?')) return;
+
+    const ok = await deleteRowFromSupabase(id);
+    if (!ok) return;
+
+    state.rows = state.rows.filter(r => r.id !== id);
+
+    if (state.selectedId === id) {
+      state.selectedId = null;
+    }
+
+    save();
+    render();
+
+    await loadRowsFromSupabase();
+  });
+}); 
+if(!rows.length){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="10" style="padding:18px 10px;text-align:center;color:#666;">Aucune opportunité ne correspond aux filtres actuels.</td>'; tbody.appendChild(tr); } }
     function renderSelectionBanner(){ const banner=document.getElementById('selectionBanner'); const txt=document.getElementById('selectionText'); const count=getFilteredRows().filter(r=>r.selected).length; if(count){ banner.classList.add('show'); txt.textContent=`Sélection active : ${count} ligne${count>1?'s':''} cochée${count>1?'s':''}`; } else { banner.classList.remove('show'); } }
     function allStatuses(rows){ const labels=[...new Set(rows.map(displayStatus).filter(Boolean))]; return BASE_STATUSES.filter(s=>labels.includes(s)); }
     function plain(v){ return String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase(); }
@@ -938,9 +969,81 @@ async function initSupabaseDashboard() {
       document.getElementById('hWeightAll').addEventListener('click',()=>{ state.filters.weights=[...WEIGHTS]; save(); render(); });
       document.getElementById('hWeightReset').addEventListener('click',()=>{ state.filters.weights=[...WEIGHTS]; save(); render(); });
       document.getElementById('checkAllVisible').addEventListener('change',()=>{ const ids=new Set(getFilteredRows().map(r=>r.id)); const flag=document.getElementById('checkAllVisible').checked; state.rows=state.rows.map(r=> ids.has(r.id) ? ({...r,selected:flag}) : r); save(); render(); });
-      document.getElementById('oppForm').addEventListener('submit',(e)=>{ e.preventDefault(); const isEdit=!!document.getElementById('recordId').value; const id=isEdit ? document.getElementById('recordId').value : uid(); const existing=state.rows.find(x=>x.id===id); const formStatus=normalizeStatusValue(document.getElementById('status').value); const row={ id, company:document.getElementById('company').value.trim(), owner:'', product:document.getElementById('product').value, notes:document.getElementById('notes').value.trim(), qualDate:document.getElementById('qualDate').value, nextAction:document.getElementById('nextAction').value.trim(), nextStep:document.getElementById('nextStep').value, status:formStatus, statusCustom:'', weight:autoWeightForStatus(formStatus), selected: existing ? existing.selected : false, createdAt: existing ? existing.createdAt : Date.now() }; const idx=state.rows.findIndex(r=>r.id===id); if(idx>=0){ state.rows[idx]=row; } else { const sameCompanyIdx = state.rows.map((r,i)=>[r,i]).filter(([r])=>norm(r.company)===norm(row.company) && norm(row.company)).map(([,i])=>i).pop(); if(sameCompanyIdx===undefined) state.rows.push(row); else state.rows.splice(sameCompanyIdx+1,0,row); } state.selectedId=row.id; save(); render(); closeForm(); });
+document.getElementById('oppForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const isEdit = !!document.getElementById('recordId').value;
+  const id = isEdit ? document.getElementById('recordId').value : uid();
+  const existing = state.rows.find(x => x.id === id);
+  const formStatus = normalizeStatusValue(document.getElementById('status').value);
+
+  const row = {
+    id,
+    company: document.getElementById('company').value.trim(),
+    owner: '',
+    product: document.getElementById('product').value,
+    notes: document.getElementById('notes').value.trim(),
+    qualDate: document.getElementById('qualDate').value,
+    nextAction: document.getElementById('nextAction').value.trim(),
+    nextStep: document.getElementById('nextStep').value,
+    status: formStatus,
+    statusCustom: '',
+    weight: autoWeightForStatus(formStatus),
+    selected: existing ? existing.selected : false,
+    createdAt: existing ? existing.createdAt : Date.now()
+  };
+
+  const ok = await saveRowToSupabase(row);
+  if (!ok) return;
+
+  const idx = state.rows.findIndex(r => r.id === id);
+
+  if (idx >= 0) {
+    state.rows[idx] = row;
+  } else {
+    const sameCompanyIdx = state.rows
+      .map((r, i) => [r, i])
+      .filter(([r]) => norm(r.company) === norm(row.company) && norm(row.company))
+      .map(([, i]) => i)
+      .pop();
+
+    if (sameCompanyIdx === undefined) {
+      state.rows.push(row);
+    } else {
+      state.rows.splice(sameCompanyIdx + 1, 0, row);
+    }
+  }
+
+  state.selectedId = row.id;
+  save();
+  render();
+  closeForm();
+
+  await loadRowsFromSupabase();
+});
       document.getElementById('duplicateBtn').addEventListener('click',()=>{ const id=document.getElementById('recordId').value; const src=state.rows.find(r=>r.id===id); if(!src) return; const copy={...src,id:uid(),selected:false,createdAt:Date.now()}; const sameCompanyIdx = state.rows.map((r,i)=>[r,i]).filter(([r])=>norm(r.company)===norm(copy.company) && norm(copy.company)).map(([,i])=>i).pop(); if(sameCompanyIdx===undefined) state.rows.push(copy); else state.rows.splice(sameCompanyIdx+1,0,copy); state.selectedId=copy.id; save(); render(); });
-      document.getElementById('deleteBtn').addEventListener('click',()=>{ const id=document.getElementById('recordId').value; if(!id) return; state.rows=state.rows.filter(r=>r.id!==id); if(state.selectedId===id) state.selectedId=null; resetForm(); save(); render(); closeForm(); });
+     document.getElementById('deleteBtn').addEventListener('click', async () => {
+  const id = document.getElementById('recordId').value;
+  if (!id) return;
+
+  if (!confirm('Supprimer cette ligne ?')) return;
+
+  const ok = await deleteRowFromSupabase(id);
+  if (!ok) return;
+
+  state.rows = state.rows.filter(r => r.id !== id);
+
+  if (state.selectedId === id) {
+    state.selectedId = null;
+  }
+
+  resetForm();
+  save();
+  render();
+  closeForm();
+
+  await loadRowsFromSupabase();
+});
       document.getElementById('exportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows()));
       document.getElementById('topExportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows()));
       document.getElementById('exportJsonBtn').addEventListener('click',()=>exportJSON(state.rows));
