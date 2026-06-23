@@ -635,14 +635,25 @@ async function saveRowToSupabase(row) {
 }
 
 async function deleteRowFromSupabase(id) {
-  const { error } = await sb
+  const { data, error } = await sb
     .from(SUPABASE_TABLE)
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
+
+  console.log('Suppression Supabase:', { id, data, error });
 
   if (error) {
     console.error(error);
     alert('Impossible de supprimer dans Supabase : ' + error.message);
+    return false;
+  }
+
+  if (!data || data.length === 0) {
+    alert(
+      'Supabase n’a supprimé aucune ligne.\n\n' +
+      'Cause probable : policy DELETE manquante ou bloquante dans Supabase.'
+    );
     return false;
   }
 
