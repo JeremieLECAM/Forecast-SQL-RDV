@@ -482,7 +482,158 @@ const sb = window.supabase.createClient(
     function norm(v){ return String(v ?? '').trim().toLowerCase(); }
     function niceWeight(v){ return String(v ?? '').replace('.',','); }
     function read(key, fallback){ try{ const raw=localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }catch(e){ return fallback; } }
-    function save(){ localStorage.setItem(STORAGE, JSON.stringify(state.rows)); localStorage.setItem(FILTERS, JSON.stringify(state.filters)); localStorage.setItem(FORECAST_META, JSON.stringify(state.forecastMeta)); }
+    
+    function save(){ 
+  localStorage.setItem(FILTERS, JSON.stringify(state.filters)); 
+  localStorage.setItem(FORECAST_META, JSON.stringify(state.forecastMeta)); 
+}
+    function emptyToNull(value) {
+  return value === '' || value === undefined || value === null ? null : value;
+}
+
+function weightToDb(value) {
+  if (value === '' || value === undefined || value === null) return null;
+  return Number(value);
+}
+
+function toDbRow(r) {
+  return {
+    id: r.id,
+    company: r.company || '',
+    owner: r.owner || '',
+    product: r.product || '',
+    notes: r.notes || '',
+    qual_date: emptyToNull(r.qualDate),
+    next_action: r.nextAction || '',
+    next_step: emptyToNull(r.nextStep),
+    status: normalizeStatusValue(r.status || ''),
+    weight: weightToDb(r.weight),
+    selected: !!r.selected,
+    created_at_ms: r.createdAt || Date.now()
+  };
+}
+
+function fromDbRow(r) {
+  return {
+    id: r.id,
+    company: r.company || '',
+    owner: r.owner || '',
+    product: r.product || '',
+    notes: r.notes || '',
+    qualDate: r.qual_date || '',
+    nextAction: r.next_action || '',
+    nextStep: r.next_step || '',
+    status: normalizeStatusValue(r.status || ''),
+    statusCustom: '',
+    weight: r.weight === null || r.weight === undefined ? '' : String(r.weight),
+    selected: !!r.selected,
+    createdAt: r.created_at_ms || Date.now()
+  };
+}
+
+async function requireLogin() {
+  const { data: sessionData } = await sb.auth.getSession();
+
+  if (sessionData.session) {
+    return sessionData.session.user;
+  }
+
+  const email = prompt('Entre ton email Speexx pour accéder au dashboard :');
+
+  if (!email) {
+    alert('Connexion annulée.');
+    return null;
+  }
+
+  const { error } = await sb.auth.signInWithOtp({
+    email: email,
+    options: {
+      emailRedirectTo: window.location.href
+    }
+  });
+
+  if (error) {
+    alert('Erreur de connexion : ' + error.message);
+    return null;
+  }
+
+  alert('Un lien de connexion vient de t’être envoyé par email. Clique dessus, puis reviens sur le dashboard.');
+  return null;
+}
+
+async function loadRowsFromSupabase() {
+  const { data, error } = await sb
+    .from(SUPABASE_TABLE)
+    .select('*')
+    .order('next_step', { ascending: true, nullsFirst: false })
+    .order('company', { ascending: true });
+
+  if (error) {
+    console.error(error);
+    alert('Impossible de charger les données Supabase : ' + error.message);
+    return;
+  }
+
+  state.rows = (data || []).map(fromDbRow);
+  render();
+}
+
+async function saveRowToSupabase(row) {
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData && userData.user ? userData.user.email : '';
+
+  const dbRow = {
+    ...toDbRow(row),
+    updated_by: email || ''
+  };
+
+  const { error } = await sb
+    .from(SUPABASE_TABLE)
+    .upsert(dbRow);
+
+  if (error) {
+    console.error(error);
+    alert('Impossible de sauvegarder dans Supabase : ' + error.message);
+  }
+}
+
+async function deleteRowFromSupabase(id) {
+  const { error } = await sb
+    .from(SUPABASE_TABLE)
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error(error);
+    alert('Impossible de supprimer dans Supabase : ' + error.message);
+  }
+}
+
+function startSupabaseRealtime() {
+  sb
+    .channel('dashboard-rdv-live')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: SUPABASE_TABLE
+      },
+      async () => {
+        await loadRowsFromSupabase();
+      }
+    )
+    .subscribe();
+}
+
+async function initSupabaseDashboard() {
+  const user = await requireLogin();
+
+  if (!user) return;
+
+  await loadRowsFromSupabase();
+  startSupabaseRealtime();
+}
     function toKey(d){ if(!(d instanceof Date)||isNaN(d)) return ''; return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
     function stripTime(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
     function formatDate(s){ if(!s) return '—'; const d=new Date(s+'T00:00:00'); return isNaN(d) ? s : d.toLocaleDateString('fr-FR'); }
@@ -504,7 +655,7 @@ const sb = window.supabase.createClient(
     function defaultForecastMeta(){ return { global:{sql:0,rdv:0,chaud:0,relance:0} }; }
     function defaultFilters(){ return { companyMode:'contains', companyValue:'', products:[...PRODUCTS], notesMode:'contains', notesValue:'', qualDate:'', sortQual:false, nextActionMode:'contains', nextActionValue:'', nextStep:'', sortNextStep:false, statusMode:'contains', statusValue:'', weights:[...WEIGHTS] }; }
 
-    const state = { rows: read(STORAGE, demoRows), filters: read(FILTERS, defaultFilters()), forecastMeta: read(FORECAST_META, defaultForecastMeta()), selectedId:null, activeTab:'tabTableau', calView:'month', calDate:new Date() };
+    const state = { rows: [], filters: read(FILTERS, defaultFilters()), forecastMeta: read(FORECAST_META, defaultForecastMeta()), selectedId:null, activeTab:'tabTableau', calView:'month', calDate:new Date() };
     if(!Array.isArray(state.rows) || state.rows.length===0) state.rows = JSON.parse(JSON.stringify(demoRows));
     state.rows = state.rows.map(r => ({ ...r, status: normalizeStatusValue(r.status), statusCustom: '', weight: autoWeightForStatus(r.status), selected: !!r.selected, createdAt: r.createdAt || Date.now() }));
     state.forecastMeta = state.forecastMeta && typeof state.forecastMeta==='object' ? state.forecastMeta : defaultForecastMeta();
@@ -721,8 +872,8 @@ const sb = window.supabase.createClient(
     function updateFromLeft(){ const f=state.filters; f.companyMode=document.getElementById('fCompanyMode').value; f.companyValue=document.getElementById('fCompanyValue').value; f.notesMode=document.getElementById('fNotesMode').value; f.notesValue=document.getElementById('fNotesValue').value; f.qualDate=document.getElementById('fQualDate').value; f.nextActionMode=document.getElementById('fNextActionMode').value; f.nextActionValue=document.getElementById('fNextActionValue').value; f.nextStep=document.getElementById('fNextStep').value; f.statusMode=document.getElementById('fStatusMode').value; f.statusValue=document.getElementById('fStatusValue').value; save(); render(); }
     function updateFromHeader(){ const f=state.filters; f.companyMode=document.getElementById('hCompanyMode').value; f.companyValue=document.getElementById('hCompanyValue').value; f.notesMode=document.getElementById('hNotesMode').value; f.notesValue=document.getElementById('hNotesValue').value; f.qualDate=document.getElementById('hQualDate').value; f.nextActionMode=document.getElementById('hNextActionMode').value; f.nextActionValue=document.getElementById('hNextActionValue').value; f.nextStep=document.getElementById('hNextStep').value; f.statusMode=document.getElementById('hStatusMode').value; f.statusValue=document.getElementById('hStatusValue').value; save(); render(); }
     function shiftPeriod(step){ const d=new Date(state.calDate); if(state.calView==='month') d.setMonth(d.getMonth()+step); else if(state.calView==='quarter') d.setMonth(d.getMonth()+step*3); else d.setFullYear(d.getFullYear()+step); state.calDate=d; render(); }
-    function exportCSV(rows){ const headers=['Entreprise','Produit','Notes','Date qualif.','Next action','Next step','Statut','Pondération','Cochée']; const lines=[headers, ...rows.map(r=>[r.company,r.product,r.notes,r.qualDate,r.nextAction,r.nextStep,displayStatus(r),r.weight,r.selected ? 'Oui':'Non'])]; const csv=lines.map(row=>row.map(v=>`"${String(v ?? '').replace(/"/g,'""')}"`).join(';')).join('\n'); const blob=new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='dashboard_opportunites_filtrees.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
-    function exportJSON(rows){ const blob=new Blob([JSON.stringify(rows,null,2)], {type:'application/json;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='dashboard_opportunites.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+    function exportCSV(rows){ const headers=['Entreprise','Produit','Notes','Date qualif.','Next action','Next step','Statut','Pondération','Cochée']; const lines=[headers, ...rows.map(r=>[r.company,r.product,r.notes,r.qualDate,r.nextAction,r.nextStep,displayStatus(r),r.weight,r.selected ? 'Oui':'Non'])]; const csv=lines.map(row=>row.map(v=>`"${String(v ?? '').replace(/"/g,'""')}"`).join(';')).join('\n'); const blob=new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='dashboard_RDV_filtrees.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+    function exportJSON(rows){ const blob=new Blob([JSON.stringify(rows,null,2)], {type:'application/json;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='dashboard_RDV.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
     function openForm(){ document.getElementById('formOverlay').classList.add('show'); }
     function closeForm(){ document.getElementById('formOverlay').classList.remove('show'); }
     function openDrawer(){ document.getElementById('drawerBackdrop').classList.add('show'); document.getElementById('filterDrawer').classList.add('show'); }
@@ -770,7 +921,9 @@ const sb = window.supabase.createClient(
       bindFilterPopupButtons();
     }
     function render(){ const filtered=getFilteredRows(); const dashboard=getRowsForCalendarAndForecast(); syncInputs(); renderKpis(filtered); renderTable(filtered); renderForecastBoards(); renderCalendar(dashboard); save(); }
-    bind(); resetForm(); render();
+bind();
+resetForm();
+initSupabaseDashboard();
   </script>
 </body>
 </html>
