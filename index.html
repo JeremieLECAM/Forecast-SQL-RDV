@@ -241,6 +241,19 @@
     .insight:last-child{border-bottom:none}
     
     
+    
+    .forecast-summary-zone{display:grid;gap:6px;margin-top:6px}
+    .forecast-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+    .forecast-summary-card{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:none}
+    .forecast-summary-head{padding:6px 8px;border-bottom:1px solid var(--line);font-size:.72rem;font-weight:900;background:#fcfcfc}
+    .forecast-summary-wrap{overflow:auto}
+    .forecast-summary-table{width:100%;min-width:540px;border-collapse:collapse}
+    .forecast-summary-table th,.forecast-summary-table td{border:1px solid #e7e7e7;padding:5px 6px;font-size:.66rem;line-height:1.15;text-align:left;background:#fff}
+    .forecast-summary-table thead th{background:#f4f4f4;font-weight:900}
+    .forecast-summary-table tbody tr:last-child td{background:#fff7f0;font-weight:900}
+    .forecast-summary-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+    @media (max-width:1100px){ .forecast-summary-grid{grid-template-columns:1fr} }
+
     .footer{padding:8px 10px 10px;text-align:center;color:var(--muted);font-size:.62rem}
 
     @media (max-width:1280px) { .layout-main,.layout-cal,.kpis{grid-template-columns:1fr} .mini-grid{grid-template-columns:1fr} }
@@ -388,6 +401,7 @@
             </div>
           </div>
           <div id="forecastBoardJeremie"></div>
+          <div id="forecastSummaryZone"></div>
         </div>
       </div>
       <div class="tab-content" id="tabCalendrier">
@@ -556,7 +570,85 @@
     async function upsertForecastTableCell(input){ const company=input.value.trim(); const rowId=input.dataset.rowId; const ownerKey=input.dataset.owner; const sectionKey=input.dataset.section; const quarter=Number(input.dataset.quarter || '0'); const section=FORECAST_SECTIONS.find(s=>s.key===sectionKey); if(!section || !quarter) return; const ownerValue=ownerValueFromKey(ownerKey); const dates=makeQuarterDate(sectionKey, quarter); if(!company && rowId){ const okDelete = await deleteRowFromSupabase(rowId); if(!okDelete) return; state.rows=state.rows.filter(r=>r.id!==rowId); if(currentSelectedId()===rowId) setCurrentSelectedId(null); save(); render(); return; } if(!company) return; let existing=state.rows.find(r=>r.id===rowId); if(existing){ existing.company=company; existing.owner=ownerValue; existing.status=section.createStatus; existing.qualDate=dates.qualDate; existing.nextStep=dates.nextStep; existing.weight=autoWeightForStatus(existing.status || section.createStatus); const ok = await saveRowToSupabase(existing); if(ok){ save(); render(); } return; } const newRow=normalizeRow({ id:uid(), company, owner:ownerValue, product:'', notes:'', qualDate:dates.qualDate, nextAction:'', nextStep:dates.nextStep, status:section.createStatus, weight:autoWeightForStatus(section.createStatus), selected:false, createdAt:Date.now() }); const ok = await saveRowToSupabase(newRow); if(!ok) return; state.rows.push(newRow); save(); render(); }
     function addForecastLine(ownerKey, sectionKey){ if(!state.forecastMetaByOwner[ownerKey]) state.forecastMetaByOwner[ownerKey]=defaultForecastMetaEntry(); if(typeof state.forecastMetaByOwner[ownerKey][sectionKey] !== 'number') state.forecastMetaByOwner[ownerKey][sectionKey]=0; state.forecastMetaByOwner[ownerKey][sectionKey]+=1; save(); render(); }
     function bindForecastBoardInputs(){ document.querySelectorAll('.fc-company-input').forEach(input=>{ input.addEventListener('change',()=>upsertForecastTableCell(input)); input.addEventListener('blur',()=>upsertForecastTableCell(input)); }); document.querySelectorAll('.fc-delete').forEach(btn=>btn.addEventListener('click', async ()=>{ const id=btn.dataset.deleteId; if(!id) return; const ok = await deleteRowFromSupabase(id); if(!ok) return; state.rows=state.rows.filter(r=>r.id!==id); if(currentSelectedId()===id) setCurrentSelectedId(null); save(); render(); })); }
-    function renderForecastBoards(){ const host=document.getElementById('forecastBoardJeremie'); if(host) host.innerHTML=renderBoardTable(state.activeOwner); bindForecastBoardInputs(); document.getElementById('forecastTitle').textContent = 'Forecast — ' + ownerLabelFromKey(state.activeOwner); }
+
+    function computeQuarterSummary(ownerKey){
+      const board = computeBoard(ownerKey);
+      const sql = [1,2,3,4].map(q => totalWeightForRows(board.sectionData.sql.grouped[q] || []));
+      const upcoming = [1,2,3,4].map(q => ['rdv','chaud','relance'].reduce((sum,key) => sum + totalWeightForRows(board.sectionData[key].grouped[q] || []), 0));
+      const best = sql.map((v, i) => v + upcoming[i]);
+      return {
+        ownerKey,
+        sql,
+        upcoming,
+        best,
+        totalSql: sql.reduce((a,b) => a + b, 0),
+        totalUpcoming: upcoming.reduce((a,b) => a + b, 0),
+        totalBest: best.reduce((a,b) => a + b, 0)
+      };
+    }
+    function mergeQuarterSummaries(a, b){
+      const sql = [0,1,2,3].map(i => (a.sql[i] || 0) + (b.sql[i] || 0));
+      const upcoming = [0,1,2,3].map(i => (a.upcoming[i] || 0) + (b.upcoming[i] || 0));
+      const best = [0,1,2,3].map(i => sql[i] + upcoming[i]);
+      return {
+        ownerKey: 'general',
+        sql,
+        upcoming,
+        best,
+        totalSql: sql.reduce((x,y) => x + y, 0),
+        totalUpcoming: upcoming.reduce((x,y) => x + y, 0),
+        totalBest: best.reduce((x,y) => x + y, 0)
+      };
+    }
+    function fmtForecastWeight(value){
+      const rounded = Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+      return niceWeight(rounded.toFixed(2).replace(/\.00$/, ''));
+    }
+    function renderQuarterSummaryTable(title, summary){
+      const quarterRows = [1,2,3,4].map((quarter, idx) => `
+        <tr>
+          <td>Q${quarter}</td>
+          <td class="num">${esc(fmtForecastWeight(summary.sql[idx]))}</td>
+          <td class="num">${esc(fmtForecastWeight(summary.upcoming[idx]))}</td>
+          <td class="num">${esc(fmtForecastWeight(summary.best[idx]))}</td>
+        </tr>`).join('');
+      return `
+        <div class="forecast-summary-card">
+          <div class="forecast-summary-head">${esc(title)}</div>
+          <div class="forecast-summary-wrap">
+            <table class="forecast-summary-table">
+              <thead>
+                <tr>
+                  <th>Quarter</th>
+                  <th>SQL</th>
+                  <th>A venir</th>
+                  <th>Best scénario</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${quarterRows}
+                <tr>
+                  <td>Total</td>
+                  <td class="num">${esc(fmtForecastWeight(summary.totalSql))}</td>
+                  <td class="num">${esc(fmtForecastWeight(summary.totalUpcoming))}</td>
+                  <td class="num">${esc(fmtForecastWeight(summary.totalBest))}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+    function renderForecastSummaryZone(){
+      const current = computeQuarterSummary(state.activeOwner);
+      if(state.activeOwner === 'anais'){
+        return `<div class="forecast-summary-zone">${renderQuarterSummaryTable('Anaïs', current)}</div>`;
+      }
+      const anaisSummary = computeQuarterSummary('anais');
+      const generalSummary = mergeQuarterSummaries(current, anaisSummary);
+      return `<div class="forecast-summary-zone forecast-summary-grid">${renderQuarterSummaryTable('Jérémie', current)}${renderQuarterSummaryTable('Général', generalSummary)}</div>`;
+    }
+
+    function renderForecastBoards(){ const host=document.getElementById('forecastBoardJeremie'); if(host) host.innerHTML=renderBoardTable(state.activeOwner); const summaryHost=document.getElementById('forecastSummaryZone'); if(summaryHost) summaryHost.innerHTML=renderForecastSummaryZone(); bindForecastBoardInputs(); document.getElementById('forecastTitle').textContent = 'Forecast — ' + ownerLabelFromKey(state.activeOwner); }
     function getCalendarDate(r){ return r.nextStep || r.qualDate || ''; }
     function renderDayCell(dateObj,inMonth,events,today){ const limited=events.slice(0,3); const more=events.length-limited.length; return `<div class="day ${inMonth?'':'out'} ${today?'today':''}"><div class="day-num">${dateObj.getDate()}</div>${limited.map(r=>`<div class="ev ${eventClass(displayStatus(r))}" title="${esc(r.company||'')} • ${esc(r.nextAction||'')}">${esc(r.company||'Action')} — ${esc((r.nextAction||'').slice(0,12))}</div>`).join('')}${more>0 ? `<div class="subtle" style="font-size:.56rem;">+ ${more}</div>` : ''}</div>`; }
     function renderMonthGrid(dateObj, rows){ const year=dateObj.getFullYear(); const month=dateObj.getMonth(); const first=new Date(year,month,1); const last=new Date(year,month+1,0); const start=(first.getDay()+6)%7; const total=Math.ceil((start+last.getDate())/7)*7; const todayKey=toKey(new Date()); let html=`<div class="month-grid">${WEEK.map(d=>`<div class="weekday">${d}</div>`).join('')}`; for(let i=0;i<total;i++){ const dn=i-start+1; const cellDate=new Date(year,month,dn); const inMonth=cellDate.getMonth()===month; const key=toKey(cellDate); const events=rows.filter(r=>{ const ds=getCalendarDate(r); if(!ds) return false; return toKey(new Date(ds))===key; }); html+=renderDayCell(cellDate,inMonth,events,key===todayKey); } html+='</div>'; return html; }
