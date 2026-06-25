@@ -221,7 +221,7 @@
     .fc-company-input.rdv{color:#0d6efd;font-weight:900}
     .fc-company-input.chaud{color:#b35d00;font-weight:900}
     .fc-company-input.relance{color:#c77700;font-weight:900}
-    .fc-delete{border:none;background:transparent;color:#888;cursor:pointer;font-size:.45rem;line-height:1;padding:0;display:none}
+    .fc-delete{border:none;background:transparent;color:#888;cursor:pointer;font-size:.45rem;line-height:1;padding:0;display:inline-block}
     .fc-cell.has-row .fc-delete{display:inline-block}
     .fc-total-weight,.fc-total-company{background:#efefef;font-weight:900;font-size:.48rem;font-family:Arial, sans-serif;text-align:center;min-height:24px;padding:3px 2px}
     .fc-total-company{padding:0 1px;text-align:center;background:#efefef}
@@ -670,7 +670,7 @@
     }
     function addForecastLine(ownerKey, sectionKey){ if(!state.forecastMetaByOwner[ownerKey]) state.forecastMetaByOwner[ownerKey]=defaultForecastMetaEntry(); if(typeof state.forecastMetaByOwner[ownerKey][sectionKey] !== 'number') state.forecastMetaByOwner[ownerKey][sectionKey]=0; state.forecastMetaByOwner[ownerKey][sectionKey]+=1; save(); render(); }
     function removeForecastLine(ownerKey, sectionKey){ if(!ownerKey || !sectionKey) return; if(!state.forecastMetaByOwner[ownerKey]) state.forecastMetaByOwner[ownerKey]=defaultForecastMetaEntry(); if(typeof state.forecastMetaByOwner[ownerKey][sectionKey] !== 'number') state.forecastMetaByOwner[ownerKey][sectionKey]=0; if(state.forecastMetaByOwner[ownerKey][sectionKey] > 0) state.forecastMetaByOwner[ownerKey][sectionKey]-=1; save(); render(); }
-    function bindForecastBoardInputs(){ document.querySelectorAll('.fc-company-input').forEach(input=>{ input.addEventListener('change',()=>upsertForecastTableCell(input)); input.addEventListener('blur',()=>upsertForecastTableCell(input)); }); document.querySelectorAll('.fc-delete').forEach(btn=>btn.addEventListener('click', async ()=>{ const id=btn.dataset.deleteId; const ownerKey=btn.dataset.owner; const sectionKey=btn.dataset.section; if(id){ const ok = await deleteRowFromSupabase(id); if(!ok) return; state.rows=state.rows.filter(r=>r.id!==id); if(currentSelectedId()===id) setCurrentSelectedId(null); } removeForecastLine(ownerKey, sectionKey); })); }
+    function bindForecastBoardInputs(){ document.querySelectorAll('.fc-company-input').forEach(input=>{ input.addEventListener('change',()=>upsertForecastTableCell(input)); input.addEventListener('blur',()=>upsertForecastTableCell(input)); }); document.querySelectorAll('.fc-delete').forEach(btn=>btn.addEventListener('click', async ()=>{ const id=btn.dataset.deleteId; const ownerKey=btn.dataset.owner; const sectionKey=btn.dataset.section; if(!ownerKey || !sectionKey) return; if(id){ const ok = await deleteRowFromSupabase(id); if(!ok) return; state.rows=state.rows.filter(r=>r.id!==id); if(currentSelectedId()===id) setCurrentSelectedId(null); } removeForecastLine(ownerKey, sectionKey); })); }
 
     function computeQuarterSummary(ownerKey){
       const board = computeBoard(ownerKey);
