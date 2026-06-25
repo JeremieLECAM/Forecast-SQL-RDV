@@ -745,7 +745,8 @@
         return `<div class="forecast-summary-zone">${renderQuarterSummaryTable('Anaïs', current)}</div>`;
       }
       const anaisSummary = computeQuarterSummary('anais');
-      return `<div class="forecast-summary-zone">${renderQuarterSummaryTable('Jérémie', current)}${renderQuarterSummaryTable('Anaïs', anaisSummary)}</div>`;
+      const generalSummary = mergeQuarterSummaries(current, anaisSummary);
+      return `<div class="forecast-summary-zone forecast-summary-grid"><div>${renderQuarterSummaryTable('Général', generalSummary)}</div><div>${renderQuarterSummaryTable('Jérémie', current)}${renderQuarterSummaryTable('Anaïs', anaisSummary)}</div></div>`;
     }
 
     function renderForecastBoards(){ const host=document.getElementById('forecastBoardJeremie'); if(host) host.innerHTML=renderBoardTable(state.activeOwner); const summaryHost=document.getElementById('forecastSummaryZone'); if(summaryHost) summaryHost.innerHTML=renderForecastSummaryZone(); bindForecastBoardInputs(); document.getElementById('forecastTitle').textContent = 'Forecast — ' + ownerLabelFromKey(state.activeOwner); }
