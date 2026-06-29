@@ -96,7 +96,6 @@
     .filter-btn{border:1px solid var(--line);background:#fafafa;color:#666;width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.62rem;font-weight:900}
     .filter-btn.active{background:#000;color:#fff;border-color:#000}
     .filter-pop{position:absolute;top:24px;right:0;width:224px;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 12px 24px rgba(0,0,0,.14);padding:7px;display:none;z-index:20}
-    #pop-quarter{width:134px}
     .filter-pop.show{display:block}
     .filter-pop h5{margin:0 0 5px;font-size:.68rem;font-weight:900}
     .stack-mini{display:grid;gap:5px}
@@ -260,13 +259,41 @@
 
     @media (max-width:1280px) { .layout-main,.layout-cal,.kpis{grid-template-columns:1fr} .mini-grid{grid-template-columns:1fr} }
     @media (max-width:900px) { .app{padding:6px} .grid-2,.grid-3{grid-template-columns:1fr} .filter-pop{left:0;right:auto;width:min(230px,calc(100vw - 20px))} .drawer{width:min(100vw,320px)} }
+
+    body.auth-pending .app{display:none}
+    .auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#f3f3f3,#fff7f0);display:none;align-items:center;justify-content:center;z-index:999;padding:18px}
+    body.auth-pending .auth-overlay{display:flex}
+    .auth-card{width:min(380px,100%);background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.16);padding:18px}
+    .auth-brand{display:inline-flex;background:#000;color:#fff;border-radius:999px;padding:4px 8px;font-size:.7rem;font-weight:900;margin-bottom:10px}
+    .auth-card h2{margin:0 0 6px;font-size:1.05rem;line-height:1.1}
+    .auth-help{margin:0 0 12px;color:var(--muted);font-size:.74rem;line-height:1.3}
+    .auth-input{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 10px;background:#fff;color:#000;font-size:.82rem;margin-bottom:8px}
+    .auth-input:focus{outline:none;border-color:rgba(255,121,0,.55);box-shadow:0 0 0 3px rgba(255,121,0,.13)}
+    .auth-btn{width:100%;padding:9px 10px;font-size:.78rem}
+    .auth-msg{margin:9px 0 0;color:var(--muted);font-size:.72rem;line-height:1.25}
+    .auth-msg.ok{color:#2e7d32;font-weight:800}
+    .auth-msg.err{color:#b42318;font-weight:800}
+    .auth-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #333;background:#111;color:#fff;border-radius:999px;padding:5px 8px;font-size:.66rem;font-weight:900;line-height:1.05}
+    .auth-chip.live::before{content:"";width:7px;height:7px;border-radius:999px;background:#2e7d32;display:inline-block}
+    .auth-chip.warn::before{content:"";width:7px;height:7px;border-radius:999px;background:#f39c12;display:inline-block}
+
   </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 </head>
-<body>
-  <div class="app">
+<body class="auth-pending">
+  <div class="auth-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="auth-card">
+      <div class="auth-brand">Speexx</div>
+      <h2 id="loginTitle">Connexion au dashboard SQL</h2>
+      <p class="auth-help">Entre ton email Speexx. Si ton email fait partie de l’équipe autorisée dans Supabase, tu recevras un lien de connexion sécurisé.</p>
+      <input id="authEmail" class="auth-input" type="email" autocomplete="email" placeholder="prenom.nom@speexx.com" />
+      <button class="btn primary auth-btn" id="loginSendBtn" type="button">Recevoir le lien de connexion</button>
+      <p class="auth-msg" id="loginMsg">Vérification de la session…</p>
+    </div>
+  </div>
+  <div class="app" id="appRoot" aria-hidden="true">
     <header class="hero">
       <div class="hero-left">
         <img class="hero-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABLAAAAGxCAMAAABFm7//AAAAYFBMVEUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/eQAAAAD/eQAAAAD/eQD/eQD/eQD/eQD/eQD/eQD/eQD/eQD/eQD/eQD/eQD/eQAAAAD/eQA+bZUBAAAAHnRSTlMAwIBA8BBgMNAg4KCwUIBwQJDwEDDQIJPAULBw4GCpC/cXAAAbqElEQVR42uzBgQAAAACAoP2pF6kCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGD24EAAAAAAAMj/tRFUVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVYWdu1tqGwaiALySVn+WHNcNKVCY9fu/ZUu5AKaheJNdW6n9PYBHA87RHo/s3Vq8+yDDbrfbNSW7YEdjEp3VGTPa4Dw0zblg3+mdg+b4l0U2v8pXzvX2vdDuUnfbkXtbE81kytBibLmhGKRzTLV9GzOiG6xJRI2v8o8YPl9qMjZE2O3W4KxBYksltPTrsoa+gHWIsKIcSqIvobHrTzA5jIa+Zmzf4L61+5/FwdDlurGHBvQFaR4s6yzY96Wj+eqQYTX9yFmqGfZJa7eQOHZ0Law9XCXYmeC8bDv6o9nM8qESW1ols3yoeMG2FYEtWq4IlxgsS4C/PR2YjnCJA9MP2JZsO5KBJcLlDM0E58RCfJ3NsJhQ6UImwLJcQbpMCh6YEjEluEBPPA7+9jgx3V+UVxPPA2xKb0hSCqsEVjR0oRJhCXlEugJaD0vx121gWDKwZCQmC2weiWWEc+4npkdgu5t4vm9qwAodSeusXzqwfKErGAfaXKWrlQxLyEVgqQ44BuKKwFVFhrjjMzdNjsB1YmfidoSONOCwbGAN2HYWOEO/3URk5UIiTOb955mSciHEKDT+TD+1C+E9bIbrSEvXLxdYWSIOPk6FTcbVuWLYaFy9KLmhUsgthINYnkyPuoXw+Qgb4StpMnmhwAooFbEqciVJGECNH0kSWs4AxOU0C6ERbGzff6gWwm+wET2SLhwWCaxCUqoHcd4S0eo7wTwDkrAUGYnC1HnFQujhc3ffJ54HzUJ4gG3wlfRVrx5YPpGczsGL1ks3DqAgJlJgGZ2NadQrhD38y9PE9KRXCE+wDTHREjAqB5ZPJMq2XLHeGA/SLDFoDFlOsRRWYinwbw96pfDEvPIdbEKPtJCgGlgR6VWTtdB1pAXdzWxgGGCeUa0U9sLXPaqVwgN7dtuEQMuxioEVkcSl3PrM8moAQQFJUYFZfEdMVacQRvjK48R00CmEP2ETAi2pqAWWT6QAI0jwhnQVkOIL6Uoe5ojE1cMcVX6LvZ+Y7lQK4TZONARaVlEKrLe8ajCxIpK25EFETqQtRZ2ZFL18IUwww/FZ4+H4YT/i3kBeEY06gVXpTWuJ9VnHajCxIpI+jDpvQVfxQogZ5vimUArv9iPujPtTU9AILEvvtZVYAy0ixdYfXzH/pBHlb60q9GxQvxSe9iPujP1GlZMPLEcftZRYhc5rbZ1LztsYVZIes2whrGon0k9H4UK4jRMNhtaAWXZxZ4K3oSQotBjMN5JXRBhV7k8jWwg944inbIO724+4q3UVviQdWJXOa+D5UKHPtbROgbyST6yMsuc7qt4Lik+T6Ft/p/2jfYzbQZ2VDayetJmbyCui5G8kr2aOg0H0qj2xjMDxIPldhcP+0b4zKq0mSgaW60jdeBN59Yu9K9qOE4SCwgUURKmNNk1OYv//L9uHnu5D4mYXZlw95b6XGpedneEOc9c1ngWvbgTXCPxpsYYJ/j++Z4hCkCB8b/6HkvVxpQ57wLZVw/Hs7Z9Wfxa8um0TWGA0VuTGmL7gorGWanE/GiC4gz/fhzL+FCCw8WahvvJdaesAY+8D++b7KyoveawW94MRrHUN9mSAtXYnecOmPYkf70baOoE+KGvYp5ZPb5jLf3MN7TsgHuijP+CH0ifpadyRZQfI5aHTVhswH1TkO0S+YUThUi3uKA1g1JRE7GUziaRJmayl7NkAa21PAQLrGs/TfukoRLUtF4RDk1PPCFE41tA+TP+q25w97nPGArvTAZY6doPwUsNJ/Hg30lYN4JjW7NFsfVrKo7HmanH/tAx46om7F1/C6QBrTUc/cP9bxh7/wP0e2tqVn+ZHpqq+1Fyel7zU0D5Ay0R5/Pwq2QmwOqV1kj/ltI6qDAgOf4CVQRBsWB9YHQVRpWy7S5NbY2le8lgt7gDBkhgpwP0OgBWTfNj9Ke5gH+0yVeekL2eEIkkrQxeFUybS9HoQ/+9RnVaBJgpToSi0Bvwxb9fPMlE4V4s7QBE6zvQdSwYs5Tb+B+ty1/ZEx2in5VN6kRSgU4g1X4RJNs4ySe9UlflnI4D0IQ3v25puqaF95SRbk5ibowJW7wlDjXuWIAzaX1kuAVr7MEFopvbKcq5j9DK8KeGYw54pPe+/CkbdjNXRUM6xO5bWjETA6j1nBrNQPG7hSw7rAokLTnc/qkXP4hdKNJbNFYSpKavX/LzkuYb2AYw3A+t0zNAAKwhrvFlkDJJyN6lMw+CCbca8eXRuaaBYxWLmP1VNYT19z86yWqrFfaNCxnbCawwhAVZveQOv8d7syd46LfDhXDByXqyj3IIe8gShbUrrJTcveayhfRtlAS0TwCmu5gCWY8Yp9OBFjZBauwrOBQ3rxQbAo25CjzUZMFdWz3micK4Wd0RnyPFuKSoGYBnhBip4KBfoLC2uRrBMew0t7cU6OFxftlfcf77j01tWNNZS59IjdpMQ4ZAAWKYlR8Bo5Bert7ynVdjlOuKjBk4/M91NzIJtEDXn5CWP1eIO+aUW4glZiweslh1aZZrr5am/5z30VQRm+LJDUyzJCIOwhrh7tmu8Py95rqF9mF62EJd3cMBy/FEcDgYpPbe/2wMhpbPUXdZxPPmqiVj2TBv79dwsNbRvuxQXsASyQdRe0es90uhoASCAEkYeRrCMJW8z4Vx4Qlnc+Yb312pxv1KK7KODfPcV4CYtJbnKY9S2seyGiYYRrJY9likeIFciI7QPNvarzqW/WoocDdQhAEYBdhzFPZkwLUKh6/mA4iuJf6HCP36qx/Zfyb8FXS3uuAacJ64PWARxBKFhPM6B1CsGEwcMVVM7bDT98GDv2GwV3/BeQ/uulyFbU6aHAFZosiugNGG3QwPdYb6DPeDvxenXAFCZpNRDvuG9zqX/othxZk7dWB4JWLLXCKEEEJdul4tVFtEd0LtweQGrTNzu4Rvea2jfb/bOdLltGAbCBA/diqpO0nOKvv9bdia94tqqTYGAQBvf/8SybK8IcrG4gsDWkPxYHxB7sY6+agEZ3+9S4J/EJNJTMbJ8LQgVupzh3UL7Cn/o3SGKBZKPyFCmJowMF0t5ma5A8eplPsVI2MKTmJvPN/bL5tJfBRj6846+SBB8tYbaoDs4Ep4urb3Q3k5TvO14RgZaR4BoeDeL+ytKDuDELrJxJOYSB0qj0MX29JpwkaqVYnZNSDf7q/l632Jft7n0BG83LWXuSMGKghFhGIk/zpik7s1Ergh7qTaw4bgxP+CYeL7ubbC59Fz+OxCWLJDdNF3oFcQsFmLSUM8Je7F2lbZ8WRbwFZ0W90uGd7O4E2lwF8PSOzlAdhOixwwW2sJ1lktgnInyvMil2/rCqzbaPVJpeH+k0L4yPVlTk5wQkKWlsjn3E+mnGQVvzkp8s71cNAhkdn8qtbifdUGbxZ0OEpiE1llArgiFE+d6wV/IQlRywp/zHWcwPHEJPQcKDe8PFdpX0n3XrXNy3IDwsXTCDNKxZZZracaGIBkZzOGk84io1uJ+yhezuBd6QCsXLeA7I6SnLQVKmRUk5x7NpN974+gAh7mgU2xx/9fwbhZ3Mj0WoRub86VNLRk4pKe2p2iI6GTJlXRvW8n7CgxZW5RTUGWG9wcL7WN6QGEEH5J7Qy0pg6TT8oniFBBdIwPJzSl7X0k3gGVmiaIu6Ad1NPy7w6x3qQXinRW0B/NMkBDOTSzKHw+uBDwfI+gL7dvixUL7CHC1kEbw4SjB0vCKHm/EH64CjawFvGPZMeujYov7Kc9mcefZWFC1FQ/i37uVsKbLuN4xlICiAh5vpAslAB4pn/WF9m3xZKF9CpdYhUULxE96ZtIxYUSdrJdurU7AZTFptrif8sks7kqXWL8oUB6C+E5ESzomRKXApfNMnUSGhy7RZKbD8P5Qc+m3GJCXOP5t41Ex1e46FMEKqJTBVaOt6PIImi3up3wzi/t/UDDk7Sew9BKC1cubPeB8I1srrhptzX7yrPpC+7b4YqF9uovC33RLYhcsp2Cf36NWQj2CNWfPwdYX2rc59stC+6hMKMM086rHcICEx/NsGa2EerQ1W0RazRb3U96ZxZ1K6lCIwfeMggVHrDlrOXlD9PUI1upy8fpC+7b4aBb3ehQLcWz1C1Z4DMGaUCvgsuk0W9z/6YI2i3tNioUQ+MacywtWqOXkDad6tBVcNm1UF9q3xbOF9tWlWAi9bsFq71KwoB7BQpfPotnifsqTWdzJJEBJxqRZsNxjCJZW3+jO817QF9q3xYuF9tXibvhNbMp/DxsFgpVQLbEa3+g+weojwUsry4f3NueZTogoCfSlBSscIVi+Fm8TYkWC1bodeO0erDeCZR6sAqQJJYmzCdYVHlawgttBp93l/odP5nIvQxhQktUE6/+YYGXgtfcR/uGr9REWw0cUZEomWHKkuxasVufsiYuD6232RDmSqGR1SaVgwV0KVj0Hmns+yk7ndK8LvNh0r3olq0saBWswwcrkcMHy2tNG//Bk4TKlSc2AUnRJoWDdZ0l4z4LV6pxQf4Fnm1DPQRgjyjCZYG1ignUrXQ0Bya+8WEAyD6mZUITVBGsLE6wbWWsYQfHKk42geEOdmjXX7HQ3wSJDF6xQw5CvV55tyBcvqeGvDWOquJfQ16sCqJeQGThawxjVn9EyNkaVn3YBZGVUJlgJb6epVwUUNz+HfQWh+hS/jzaoXojgAfkIugTrPvOwMNUTLxN2fVzqc5L/xiNbTrIA7TIOyALUmzhakWBVlIcVdhWE2idRvCkIbRKFEGlmWWoFVYLV5Fx5PSpQT0Qyhj0FofpZX38LQpv1dQ3lSy0oIVjRHRANlo6vYPfiVZ6j5RJY/cvKCkKLxtpNP68dlqPVNJdwJCxbRhMsIuQ59Uq7oC9NJLQuaFHSvHbs7lGQX9cDQbC82p6QM+Z7EKwJz1DaBX1h5rN1QcuT5nVAOoPbAuSbLCKhll3qUYGQUWxrZUN0FUZjff5+hnVBH0S/THw1IYif9STK5ltQd5Ze4n06pVwoCJV2QV8oCK0L+kjmMfIcLIP4Vy5QLruvSAXwZnqnkwnPUNoFfaEgtC7obBRpFhQQrMEVYSF1deQcMLKhd76H01kQcndBf/t+hnVBK6AB3EuJHfAkfkgYalaBUWG3XX5BWENR+IO9a1FyGoaB8TOOnRACHJRjMP//l0AZmAG3XJOVFBu8H8AF115rZa30Y0xOF4UVYkrESSwlHtTHjGilBHSXEIZupwTj0a1RqQv6UlJOd0HXAqctZQZBSRfTTFhcqCsq/XkBpp0XzQele6Uu6BtjcroLuiIcirI0AWEFaWOOapoFXNN1DXcmPVfYGuuOIOytserBgQGHiSLun4RTWFvbxQKx5WdClQtU6oK+IQi7C7oyuJnqclPSSQibM5SGCnU5bv+GuZ182yOCsFIX9A1B2F3Q9WE7g7Bm4afyse23t3VH/FsZ7gjCCltj3emK3Ftj1QZ9AmHliUIRYqkdX8EzOvlwrDhUBpULVOqCvjEmp7ugq8RMcrUp4Ydpi5Ls1FDpqG1Hvr4YG1bqgr4xJqe7oA9g0o/Bi9X1AYRFGAl4PEUb2skMze3UYLwYGtbpgr4lCLsLmrEGR0kdfgsQFuH9qPAM7daOJvSNasKQGZGaEIRXUfgfFbwbiY1qhXNYeCXNSMCxSzuacKqoXxRfejRYGRc0Lgifuwv6LiSKhZIwYeFp90TxJmlFy3429QhGNFRJA45VPYKFWhCOy1ku6Nd7a6tedRf0PUgQgD+BsJKYLSd7mPWiVJBk8eT1JJXjn4gFod7dhmaWGpNTFio8dRf0HUSB+NicQFjZiD1sOryUywvJo4QztBbKmAVqQXigr8N6ypic5wNJ+qf/puBdCexTQ3CrKUE/mCGqMbRyIZaz2LUTBJ3BESALQBAe6Jxlp1ME4TXr1V3QmG4JMGHh5mep6zEQ/Z0kd5cnkBdXudezlUR6ur2C8FBvUnWKILziqbugscDatUZYdkKXBD1ZRizBa9AqKgeIbRYzzUxr+QoHrTzrGYLwine9NRZ2qFahEcogYeHX40j3V6JQgtdZOGqZpXx2gSSrZ46amVdpF/THo90XXnUX9C04gW26yXUcxfNuLuZd8ETOEcRLEHBuNbQ+O1QmW9ofSR/eSEFqTE5pZX7qLmgoCjAiOSFSl6vnt9NaR+RKsiN7HtJTdYRe2D9VkwrCCPR30EJjcsow6d2b3hoLyQwriaqmgPEITgKJtN4rSZjXEslTpAfWlX51J1JBaBDDtIEEIdJ54VN3QUMbdRFIYieIsPCTlYBOb2gFanC8PRI1nUfdjrx8lUgF4QZtpegQQQjZmC/dBV1iYn/JihQiTmUJxkrUif3EzVhToPr5NLCu1O1nDakgdFjTv01MEF6KLvC9NRbCJzN/lcBE3qnNE56oEp7U5BN208BigeAVaQNkdyulMRBdAwuq6VapWdCfUb751F3Q0H21cjexjUAuHL4gx5j3IhLHbHbf2XAbpR1cs5Yoaaq0kQMCJOBhBRiTAyi6S3dBFxjBgIKyInkDCAuNWzRL+DbtpVe3I7yKQHYQZwK1ozLXBDKdPeMpqJFjFjTMNpebnNdd0FiOiddHvPA0706OYiJZiciQFrP+UQ6A29yjUslqngmVhlgQ4peTB8bkYAmoT90FXUDzlaW4nYqIa9qA1RNw+KF97OxuGvQAXUG/W8Q/FaerrKgFId6axk5CgrDEpbugMdWiHNUTVomNcTxKWu5+5RrzIUQuqRlX93cS9CFzpGFM3g27TS/o1pm0UmQG/t+AKFRigrDkve6CBhPDfv8TFr5VVYZhky8Pl9EhH4Vn7Dw+r/eIwC3JcrWumPMBhPXu73bkUxOlIFyorpGVe0zO+7vKsrug0YtVmYeS+aQtrFQmgVWb9uYHtJ5DBqBIl7dEnLX5g7WmRSsgFmSbS2pvfKo59qnWEX7fDFwjWOHZuyPPe10Uco2jVP7FU5poIxaVq8PIYf4uEJRK+jtmFfiH7K0ZQPz5qUmpfBSrkNFz5J0F/QQUUBWisLugKXIXfzmv0xoOhQFNEdYGNIAQxlzBKGWIF/CKT1wUak5B+O7vz43dBU1iLU7+Bmm5w1khX/NBKmBdHQM/gU8FRBcbRi5BiOcWRyFBWOLSW2MVD4VHoWatzU9oreJxQVH1zY/5NXQGIPupSz4Tmk0Q4roiOilBWIrC7oIu0iynwzRFWNfbuw2lNbezFTgFYYmNKwnwARWEpSjsLujK0ix5rvfE30B0zaxvdDUNgD9cn4kLQvxHMcCYHMwAeOmtsYD4mAPWNUVY+3sV2HwSxgMd4mGcn8W0jn7TW8cxJufpobL57oKuSAl8w1KxpiqhORslkpNAK+SaKNOAK8emnzkE4evHWpd2F3Q1SqDYqxhh8auveRhaYaxfC1t/4j1QPrQqHqW+AIIQq/N87q2xqlECOQdHSFhaZ14Ex+eAoieBVsi1yLXhbmUGUTgBghBy0rx90wveK1EChe8BJawjwWJVIxgoqbUVxrKjgCDERaESE4SlKOwu6CqUQJEXhgmreFCqg68AxgJe3RphLDuKCEJcFK4ArWBx0HN3QQ+n36tX+IGWsHipdxmGRhjLju3shWUQEYT4LW1HVLiVpNJFYSO7tOArGsJiLS33zbzF2rGdveAHIUGIt9QJlFHQ631DDrsLugLG8gM1Yf0Ry1TEV39f4Kr4qmhnxgjrBzFBiD82aSFBWOK5u6BPz7xbM9AT1u+MVRNfydFAHJvZC3akTTNNzKnbUUoQlv9+d0ED4+MYjxVOWL8Yq6qg5eUFPv19cMfII6FV3YAIiEcUOiFBiIvCz8O/DzdnMSg3cBHWlbEq5CuZBU6uGf9DIG6qEPgrEDfAoozFP8/dBQ3Z4nGHCx9hXRmruqCFdYHLJahfwSbquoNRoJ7HAH4/KMP09k13QZ+mWqIZeAiLhxi2ZhbYGsqAW2UA+ESTTYKrZ4qq/IvEG97HL7011lf27ke3TRgIA/h3/m9jl6BlnVRN3vu/5VSaRUtJUwj2xVX9ewIHiQ+fuSPXCJVrmzRqBxakyoWohE818km/qFHUqHItzgMMBWH5ojAyFYRLL30K+iofc1VkgfqBBe9yEeRRmKV8odVkrXnoJoAGCsK7uk0SV0G4LAr7FPR1knI1IQEMgVVqK6NGVGBC/qe90/ZL0uXyyJcfDRBc/2qgNFdBuCwK+6exmCMrGIAtsGCpzRAAdPHCmyTOGk/XkCqchjvcy6t93alPfB1SL30K+kMy5uKcATgDCzCqzRCYI6veg6DlyFKiytGSZXxzO+I/R64e9Lko7FPQH/OTyiUNEmAOrDkXWoyr09K+RFwVjSwlNNaInC9yac+nMH5yNnQe/vQp6FtMzIW4UQM8gbXMhRbjamZc3o8MGCTiTNa0o9mAoSh0OHvi7Y761aegb9MmlkgrD4ApsJb0GPI2arDgYQeVLzS7UngRmLbY2wtCydzOK3ByZO4///G7T0F/Rqch5LupaDwA1sBaSkNeLxoNRun+zIoGrOSepWqs5uU2FjvJrXDyfNjmiJ2eDxt9iwmdBW8GlzcLcbQA8PjAmreKal2+arBLU7hjb5U0+NnJ5QvNXtTuu5PjQHklF0XyANBKYL2SgvINioTEo3gzhA0JMFo8jDbvQqvZi9p1WhoxEal8naMoRmkxay2wXlkzUVjeVcMyX/lpKaLLtwVqYaWrnl6BhLHoujZ4ORuFEEnOcNZuYL3R88pPC2+sXPFvj4TLn01EkxhlY/e/lkYIevf4ckSDELLvq7q/7NQxEQAADAMh/66roeNfQASbXmEBPAgL2CUsIENYQIawgAxhARnCAjKEBWQIC8gQFpAhLCBDWECGsDh26oAEAAAAQND/1+0IdISwISxgQ1jAhrCADWEBG8ICNoQFbAgL2BAWsCEsYENYwIawgA1hARvCAjaEBWwIC9gQFrAhLGBDWMCGsIANYQEbwgI2hAVsCAvYEBawISyInTooAQCGASA2Nph/ybXQ70EiImQIC8gQFpAhLCBDWECGsIAMYQEZwgIyhAVkCAvIEBaQISwgQ1hAxr9r7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMMeHAgAAAAAAPm/NoKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrQHBwIAAAAAgvytJ9igAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAE1Qf11nzgJESAAAAAElFTkSuQmCC" alt="Speexx logo">
@@ -277,6 +304,8 @@
         </div>
       </div>
       <div class="top-actions">
+        <span class="auth-chip warn" id="authStatus">Connexion…</span>
+        <button class="btn dark" id="logoutBtn" type="button" style="display:none;">Déconnexion</button>
         <button class="btn dark" id="resetViewBtn" type="button">Vue par défaut</button>
         <button class="btn dark" id="topExportCsvBtn" type="button">Export CSV</button>
         <label class="btn dark" for="importCsv" style="cursor:pointer;">Import CSV</label>
@@ -482,7 +511,13 @@
     const SUPABASE_URL = 'https://xvnbxtzhrsmrvrssfaym.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_-JAeacQ1qnKF3rp5dbvicA_vQ4rW_eY';
     const SUPABASE_TABLE = 'dashboard_RDV';
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    const TEAM_EMAIL_DOMAIN = '@speexx.com';
+    const APP_REDIRECT_URL = window.location.origin + window.location.pathname;
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+    let realtimeChannel = null;
+    let currentUser = null;
     const FILTERS='speexx_dashboard_filters_v8_multiowner';
     const FORECAST_META='speexx_dashboard_forecast_meta_v8_multiowner';
     const APP_PREFS='speexx_dashboard_prefs_v8_multiowner';
@@ -521,7 +556,7 @@
     function ownerValueFromKey(key){ const ws = WORKSPACES.find(x => x.key===key); return ws ? ws.owner : 'Jérémie'; }
     function ownerKeyFromValue(owner){ return plain(owner)==='anais' ? 'anais' : 'jeremie'; }
     function defaultFilters(){ return { companyMode:'contains', companyValue:'', quarters:[...QUARTER_FILTER_OPTIONS], products:[...PRODUCTS], notesMode:'contains', notesValue:'', qualDate:'', sortQual:false, nextActionMode:'contains', nextActionValue:'', nextStep:'', sortNextStep:false, statuses:[...STATUS_FILTER_OPTIONS], weights:[...WEIGHTS] }; }
-    function sanitizeFilterObject(raw){ const base=defaultFilters(); const merged={...base, ...(raw||{})}; merged.quarters = Array.isArray(raw?.quarters) ? raw.quarters.map(String) : [...QUARTER_FILTER_OPTIONS]; merged.products = Array.isArray(raw?.products) ? raw.products.map(String) : [...PRODUCTS]; merged.weights = Array.isArray(raw?.weights) ? raw.weights.map(String) : [...WEIGHTS]; merged.statuses = Array.isArray(raw?.statuses) ? raw.statuses.map(String) : [...STATUS_FILTER_OPTIONS]; return merged; }
+    function sanitizeFilterObject(raw){ const base=defaultFilters(); const merged={...base, ...(raw||{})}; merged.quarters = Array.isArray(raw?.quarters) && raw.quarters.length ? raw.quarters.map(String) : [...QUARTER_FILTER_OPTIONS]; merged.products = Array.isArray(raw?.products) && raw.products.length ? raw.products.map(String) : [...PRODUCTS]; merged.weights = Array.isArray(raw?.weights) && raw.weights.length ? raw.weights.map(String) : [...WEIGHTS]; merged.statuses = Array.isArray(raw?.statuses) && raw.statuses.length ? raw.statuses.map(String) : [...STATUS_FILTER_OPTIONS]; return merged; }
     function normalizeFiltersByOwner(raw){ return { anais: sanitizeFilterObject(raw?.anais), jeremie: sanitizeFilterObject(raw?.jeremie) }; }
     function defaultForecastMetaEntry(){ return {sql:0,rdv:0,chaud:0,relance:0}; }
     function defaultForecastMeta(){ return { anais: defaultForecastMetaEntry(), jeremie: defaultForecastMetaEntry() }; }
@@ -549,16 +584,174 @@
     function weightToDb(value) { if (value === '' || value === undefined || value === null) return null; return Number(value); }
     function toDbRow(r) { return { id: r.id, company: r.company || '', owner: normalizeOwnerValue(r.owner), product: r.product || '', notes: r.notes || '', qual_date: emptyToNull(r.qualDate), next_action: r.nextAction || '', next_step: emptyToNull(r.nextStep), status: normalizeStatusValue(r.status || ''), weight: weightToDb(r.weight), selected: !!r.selected, created_at_ms: r.createdAt || Date.now() }; }
     function fromDbRow(r) { return normalizeRow({ id: r.id, company: r.company || '', owner: r.owner || 'Jérémie', product: r.product || '', notes: r.notes || '', qualDate: r.qual_date || '', nextAction: r.next_action || '', nextStep: r.next_step || '', status: r.status || '', weight: r.weight === null || r.weight === undefined ? '' : String(r.weight), selected: !!r.selected, createdAt: r.created_at_ms || Date.now() }); }
-    async function requireLogin() { const { data: sessionData } = await sb.auth.getSession(); if (sessionData.session) return sessionData.session.user; const email = prompt('Entre ton email Speexx pour accéder au dashboard :'); if (!email) { alert('Connexion annulée.'); return null; } try { const { error } = await sb.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: 'https://jeremielecam.github.io/Forecast-SQL-RDV/' } }); if (error) { alert('Erreur Supabase : ' + error.message); return null; } alert('Un lien de connexion vient de t’être envoyé par email. Clique dessus, puis reviens sur le dashboard.'); return null; } catch (err) { alert('Erreur technique : ' + (err && err.message ? err.message : String(err))); return null; } }
-    async function loadRowsFromSupabase() { const { data, error } = await sb.from(SUPABASE_TABLE).select('*').order('next_step', { ascending: true, nullsFirst: false }).order('company', { ascending: true }); if (error) { console.error(error); return; } state.rows = (data || []).map(fromDbRow); render(); }
-    async function saveRowToSupabase(row) { const { error } = await sb.from(SUPABASE_TABLE).upsert({ ...toDbRow(row), updated_at: new Date().toISOString() }); if (error) { console.error(error); alert('Impossible de sauvegarder dans Supabase : ' + error.message); return false; } return true; }
-    async function deleteRowFromSupabase(id) { const { data, error } = await sb.from(SUPABASE_TABLE).delete().eq('id', id).select('id'); if (error || !data || !data.length) { console.error(error); alert('Impossible de supprimer dans Supabase.'); return false; } return true; }
-    function startSupabaseRealtime() { sb.channel('dashboard-rdv-live').on('postgres_changes', { event:'*', schema:'public', table:SUPABASE_TABLE }, async () => { await loadRowsFromSupabase(); }).subscribe(); }
-    async function initSupabaseDashboard() { const user = await requireLogin(); if (!user) return; await loadRowsFromSupabase(); startSupabaseRealtime(); }
+    function setAuthUiMessage(message, kind='') {
+      const msg = document.getElementById('loginMsg');
+      if (!msg) return;
+      msg.textContent = message || '';
+      msg.className = 'auth-msg' + (kind ? ' ' + kind : '');
+    }
+    function setAuthStatus(text, kind='warn') {
+      const status = document.getElementById('authStatus');
+      if (!status) return;
+      status.textContent = text;
+      status.className = 'auth-chip ' + kind;
+    }
+    function isTeamEmail(email) {
+      const value = String(email || '').trim().toLowerCase();
+      return !!value && (!TEAM_EMAIL_DOMAIN || value.endsWith(TEAM_EMAIL_DOMAIN));
+    }
+    function showLogin(message='Entre ton email Speexx pour recevoir un lien de connexion.') {
+      document.body.classList.add('auth-pending');
+      document.getElementById('appRoot')?.setAttribute('aria-hidden','true');
+      document.getElementById('logoutBtn')?.style.setProperty('display','none');
+      setAuthStatus('Connexion…', 'warn');
+      setAuthUiMessage(message);
+    }
+    function showApp(user) {
+      currentUser = user || null;
+      document.body.classList.remove('auth-pending');
+      document.getElementById('appRoot')?.removeAttribute('aria-hidden');
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+      setAuthStatus(user?.email ? `Connecté : ${user.email}` : 'Connecté', 'warn');
+    }
+    async function sendMagicLink() {
+      const input = document.getElementById('authEmail');
+      const email = String(input?.value || '').trim().toLowerCase();
+      if (!email) {
+        setAuthUiMessage('Entre ton email Speexx.', 'err');
+        return;
+      }
+      if (!isTeamEmail(email)) {
+        setAuthUiMessage(`Cet accès est réservé aux emails ${TEAM_EMAIL_DOMAIN}.`, 'err');
+        return;
+      }
+      setAuthUiMessage('Envoi du lien sécurisé…');
+      const { error } = await sb.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: APP_REDIRECT_URL
+        }
+      });
+      if (error) {
+        setAuthUiMessage('Erreur Supabase : ' + error.message, 'err');
+        return;
+      }
+      setAuthUiMessage('Email envoyé ✅ Clique sur le lien reçu pour ouvrir le dashboard.', 'ok');
+    }
+    async function requireLogin() {
+      const { data: sessionData, error } = await sb.auth.getSession();
+      if (error) {
+        console.error(error);
+        showLogin('Erreur de session Supabase. Réessaie de te connecter.');
+        return null;
+      }
+      if (sessionData.session?.user) {
+        showApp(sessionData.session.user);
+        return sessionData.session.user;
+      }
+      showLogin();
+      return null;
+    }
+    async function loadRowsFromSupabase() {
+      const { data, error } = await sb.from(SUPABASE_TABLE).select('*').order('next_step', { ascending: true, nullsFirst: false }).order('company', { ascending: true });
+      if (error) {
+        console.error(error);
+        setAuthStatus('Erreur synchro', 'warn');
+        alert('Impossible de charger les données Supabase : ' + error.message);
+        return;
+      }
+      state.rows = (data || []).map(fromDbRow);
+      render();
+    }
+    async function saveRowToSupabase(row) {
+      const { data: sessionData } = await sb.auth.getSession();
+      if (!sessionData.session) {
+        showLogin('Ta session a expiré. Reconnecte-toi pour sauvegarder.');
+        return false;
+      }
+      const { error } = await sb.from(SUPABASE_TABLE).upsert({ ...toDbRow(row), updated_at: new Date().toISOString() });
+      if (error) { console.error(error); alert('Impossible de sauvegarder dans Supabase : ' + error.message); return false; }
+      return true;
+    }
+    async function deleteRowFromSupabase(id) {
+      const { data: sessionData } = await sb.auth.getSession();
+      if (!sessionData.session) {
+        showLogin('Ta session a expiré. Reconnecte-toi pour supprimer.');
+        return false;
+      }
+      const { data, error } = await sb.from(SUPABASE_TABLE).delete().eq('id', id).select('id');
+      if (error || !data || !data.length) { console.error(error); alert('Impossible de supprimer dans Supabase.'); return false; }
+      return true;
+    }
+    async function replaceOwnerRowsInSupabase(ownerKey, importedRows) {
+      const { data: sessionData } = await sb.auth.getSession();
+      if (!sessionData.session) {
+        showLogin('Ta session a expiré. Reconnecte-toi pour importer.');
+        return false;
+      }
+      const ownerValue = ownerValueFromKey(ownerKey);
+      const normalizedRows = importedRows.map(r => normalizeRow({ ...r, owner: ownerValue }));
+      const { error: deleteError } = await sb.from(SUPABASE_TABLE).delete().eq('owner', ownerValue);
+      if (deleteError) {
+        console.error(deleteError);
+        alert('Impossible de remplacer les lignes existantes dans Supabase : ' + deleteError.message);
+        return false;
+      }
+      if (!normalizedRows.length) return true;
+      const payload = normalizedRows.map(r => ({ ...toDbRow(r), updated_at: new Date().toISOString() }));
+      const { error: upsertError } = await sb.from(SUPABASE_TABLE).upsert(payload);
+      if (upsertError) {
+        console.error(upsertError);
+        alert('Impossible d’importer le CSV dans Supabase : ' + upsertError.message);
+        return false;
+      }
+      return true;
+    }
+    function startSupabaseRealtime() {
+      if (realtimeChannel) return;
+      realtimeChannel = sb.channel('dashboard-rdv-live')
+        .on('postgres_changes', { event:'*', schema:'public', table:SUPABASE_TABLE }, async () => { await loadRowsFromSupabase(); })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') setAuthStatus(currentUser?.email ? `Live : ${currentUser.email}` : 'Live actif', 'live');
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setAuthStatus('Live à reconnecter', 'warn');
+        });
+    }
+    async function stopSupabaseRealtime() {
+      if (!realtimeChannel) return;
+      await sb.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+    function listenAuthChanges() {
+      sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          showApp(session.user);
+          await loadRowsFromSupabase();
+          startSupabaseRealtime();
+        }
+        if (event === 'SIGNED_OUT') {
+          currentUser = null;
+          await stopSupabaseRealtime();
+          state.rows = [];
+          render();
+          showLogin('Déconnecté. Entre ton email pour recevoir un nouveau lien.');
+        }
+      });
+    }
+    async function logout() {
+      await sb.auth.signOut();
+    }
+    async function initSupabaseDashboard() {
+      const user = await requireLogin();
+      if (!user) return;
+      await loadRowsFromSupabase();
+      startSupabaseRealtime();
+    }
     function getOwnerRows(ownerKey = state.activeOwner){ const ownerLabel = ownerValueFromKey(ownerKey); return state.rows.filter(r => plain(normalizeOwnerValue(r.owner)) === plain(ownerLabel)); }
-    function getFilteredRows(ownerKey = state.activeOwner){ const f = sanitizeFilterObject(state.filtersByOwner[ownerKey]); state.filtersByOwner[ownerKey] = f; return [...getOwnerRows(ownerKey)].filter(r => f.quarters.includes(String(quarterLabelForRow(r)))).filter(r => isMatch(r.company, f.companyValue, f.companyMode)).filter(r => !r.product || f.products.includes(String(r.product))).filter(r => isMatch(r.notes, f.notesValue, f.notesMode)).filter(r => !f.qualDate || r.qualDate===f.qualDate).filter(r => isMatch(r.nextAction, f.nextActionValue, f.nextActionMode)).filter(r => !f.nextStep || r.nextStep===f.nextStep).filter(r => f.statuses.includes(String(displayStatus(r)))).filter(r => !r.weight || f.weights.includes(String(r.weight))).sort((a,b)=>{ if(f.sortQual){ const c=dateSortValue(a.qualDate)-dateSortValue(b.qualDate); if(c) return c; } if(f.sortNextStep){ const c=dateSortValue(a.nextStep)-dateSortValue(b.nextStep); if(c) return c; } return (b.createdAt||0) - (a.createdAt||0) || String(a.company||'').localeCompare(String(b.company||''), 'fr'); }); }
+    function getFilteredRows(ownerKey = state.activeOwner){ const f = sanitizeFilterObject(state.filtersByOwner[ownerKey]); state.filtersByOwner[ownerKey] = f; return [...getOwnerRows(ownerKey)].filter(r => f.quarters.includes(String(quarterLabelForRow(r)))).filter(r => isMatch(r.company, f.companyValue, f.companyMode)).filter(r => !r.product || f.products.includes(String(r.product))).filter(r => isMatch(r.notes, f.notesValue, f.notesMode)).filter(r => !f.qualDate || r.qualDate===f.qualDate).filter(r => isMatch(r.nextAction, f.nextActionValue, f.nextActionMode)).filter(r => !f.nextStep || r.nextStep===f.nextStep).filter(r => f.statuses.includes(String(displayStatus(r)))).filter(r => !r.weight || f.weights.includes(String(r.weight))).sort((a,b)=>{ if(f.sortQual){ const c=dateSortValue(a.qualDate)-dateSortValue(b.qualDate); if(c) return c; } if(f.sortNextStep){ const c=dateSortValue(a.nextStep)-dateSortValue(b.nextStep); if(c) return c; } return String(a.company||'').localeCompare(String(b.company||''), 'fr') || (a.createdAt||0) - (b.createdAt||0); }); }
     function getRowsForCalendarAndForecast(ownerKey = state.activeOwner){ const filtered=getFilteredRows(ownerKey); const selected=filtered.filter(r=>r.selected); return selected.length ? selected : filtered; }
-    function renderChoiceList(targetId, values, selected, key, compact=false, weight=false){ const el=document.getElementById(targetId); if(!el) return; const selectedValues = Array.isArray(selected) ? selected.map(String) : values.map(String); el.innerHTML=''; const controls=document.createElement('div'); controls.style.display='flex'; controls.style.gap='5px'; controls.style.flexWrap='wrap'; controls.style.marginBottom='5px'; const selectAllBtn=document.createElement('button'); selectAllBtn.type='button'; selectAllBtn.className='btn small soft'; selectAllBtn.textContent='Tout sélectionner'; selectAllBtn.addEventListener('click',()=>{ currentFilters()[key]=values.map(String); save(); render(); }); const clearAllBtn=document.createElement('button'); clearAllBtn.type='button'; clearAllBtn.className='btn small soft'; clearAllBtn.textContent='Tout déselectionner'; clearAllBtn.addEventListener('click',()=>{ currentFilters()[key]=[]; save(); render(); }); controls.appendChild(selectAllBtn); controls.appendChild(clearAllBtn); el.appendChild(controls); values.forEach(v=>{ const label=document.createElement('label'); label.className=compact ? 'check compact' : 'check'; const input=document.createElement('input'); input.type='checkbox'; input.checked=selectedValues.includes(String(v)); input.style.accentColor='var(--orange)'; input.addEventListener('change',()=>{ const filters = currentFilters(); if(!Array.isArray(filters[key])) filters[key]=values.map(String); if(input.checked){ if(!filters[key].includes(String(v))) filters[key].push(String(v)); } else { filters[key]=filters[key].filter(x=>x!==String(v)); } save(); render(); }); const span=document.createElement('span'); span.textContent=weight ? niceWeight(v) : v; label.appendChild(input); label.appendChild(span); el.appendChild(label); }); }
+    function renderChoiceList(targetId, values, selected, key, compact=false, weight=false){ const el=document.getElementById(targetId); if(!el) return; const selectedValues = Array.isArray(selected) && selected.length ? selected.map(String) : values.map(String); el.innerHTML=''; values.forEach(v=>{ const label=document.createElement('label'); label.className=compact ? 'check compact' : 'check'; const input=document.createElement('input'); input.type='checkbox'; input.checked=selectedValues.includes(String(v)); input.style.accentColor='var(--orange)'; input.addEventListener('change',()=>{ const filters = currentFilters(); if(!Array.isArray(filters[key])) filters[key]=values.map(String); if(input.checked){ if(!filters[key].includes(String(v))) filters[key].push(String(v)); } else { filters[key]=filters[key].filter(x=>x!==String(v)); if(filters[key].length===0) filters[key]=values.map(String); } save(); render(); }); const span=document.createElement('span'); span.textContent=weight ? niceWeight(v) : v; label.appendChild(input); label.appendChild(span); el.appendChild(label); }); }
     function syncInputs(){ const f=currentFilters(); const map={ fCompanyMode:f.companyMode, fCompanyValue:f.companyValue, fNotesMode:f.notesMode, fNotesValue:f.notesValue, fQualDate:f.qualDate, fNextActionMode:f.nextActionMode, fNextActionValue:f.nextActionValue, fNextStep:f.nextStep, hCompanyMode:f.companyMode, hCompanyValue:f.companyValue, hNotesMode:f.notesMode, hNotesValue:f.notesValue, hQualDate:f.qualDate, hNextActionMode:f.nextActionMode, hNextActionValue:f.nextActionValue, hNextStep:f.nextStep }; Object.entries(map).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.value = val ?? ''; }); ['toggleSortQual','sortChipQual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='Tri croissant : '+(f.sortQual?'On':'Off'); }); ['toggleSortNextStep','sortChipNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='Tri croissant : '+(f.sortNextStep?'On':'Off'); }); renderChoiceList('productFilters', PRODUCTS, f.products, 'products', false, false); renderChoiceList('statusFilters', STATUS_FILTER_OPTIONS, f.statuses, 'statuses', false, false); renderChoiceList('weightFilters', WEIGHTS, f.weights, 'weights', false, true); renderChoiceList('hQuarterFilters', QUARTER_FILTER_OPTIONS, f.quarters, 'quarters', true, false); renderChoiceList('hProductFilters', PRODUCTS, f.products, 'products', true, false); renderChoiceList('hStatusFilters', STATUS_FILTER_OPTIONS, f.statuses, 'statuses', true, false); renderChoiceList('hWeightFilters', WEIGHTS, f.weights, 'weights', true, true); document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + ownerLabelFromKey(state.activeOwner); document.querySelectorAll('.workspace-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.workspace===state.activeOwner)); document.querySelectorAll('.subtab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab===currentSubTab())); document.querySelectorAll('.tab-content').forEach(el => el.classList.toggle('active', el.id===currentSubTab())); }
     function renderKpis(rows){ const totalWeight=rows.reduce((s,r)=>s+Number(r.weight||0),0); const uniqueCompanies=new Set(rows.map(r=>norm(r.company)).filter(Boolean)).size; const rdv=rows.filter(r=>plain(displayStatus(r))==='rdv').length; const chaud=rows.filter(r=>plain(displayStatus(r))==='chaud').length; const relance=rows.filter(r=>plain(displayStatus(r))==='a relancer').length; const cards=[ {label:'Lignes visibles', value:rows.length, mini:`${uniqueCompanies} comptes distincts`}, {label:'Pondération visible', value:niceWeight(totalWeight.toFixed(2).replace(/\.00$/,'')), mini:'Somme pondérée'}, {label:'RDV', value:rdv, mini:'Lignes en rendez-vous'}, {label:'Chaud', value:chaud, mini:'Lignes chaudes'}, {label:'À relancer', value:relance, mini:'Relances à piloter'} ]; document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi"><div class="label">${esc(c.label)}</div><div class="value">${esc(String(c.value))}</div><div class="mini">${esc(c.mini)}</div></div>`).join(''); }
     function renderSummary(){ const tableRows=getFilteredRows(); const dashRows=getRowsForCalendarAndForecast(); const totalWeight=dashRows.reduce((s,r)=>s+Number(r.weight||0),0); const selectedCount=tableRows.filter(r=>r.selected).length; const items=[ ['Workspace', ownerLabelFromKey(state.activeOwner)], ['Tableau visible', String(tableRows.length)], ['Lignes cochées', String(selectedCount)], ['Base calendrier/forecast', String(dashRows.length)], ['Pondération active', niceWeight(totalWeight.toFixed(2).replace(/\.00$/,''))], ['Avec next action', String(dashRows.filter(r=>r.nextAction).length)] ]; document.getElementById('summaryList').innerHTML=items.map(([k,v])=>`<div class="summary-item"><span class="summary-key">${esc(k)}</span><strong>${esc(v)}</strong></div>`).join(''); }
@@ -801,9 +994,13 @@
     function shiftPeriod(step){ const d=new Date(currentCalDate()); if(currentCalView()==='month') d.setMonth(d.getMonth()+step); else if(currentCalView()==='quarter') d.setMonth(d.getMonth()+step*3); else d.setFullYear(d.getFullYear()+step); state.calDateByOwner[state.activeOwner]=d; render(); }
     function switchWorkspace(ownerKey){ state.activeOwner = ownerKey; save(); render(); }
     function switchSubTab(tabId){ state.activeTabsByOwner[state.activeOwner] = tabId; save(); render(); }
-    function bind(){ document.querySelectorAll('.workspace-btn').forEach(btn=>btn.addEventListener('click',()=>switchWorkspace(btn.dataset.workspace))); document.querySelectorAll('.subtab-btn').forEach(btn=>btn.addEventListener('click',()=>switchSubTab(btn.dataset.tab))); ['fCompanyMode','fCompanyValue','fNotesMode','fNotesValue','fQualDate','fNextActionMode','fNextActionValue','fNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input', updateFromLeft); el.addEventListener('change', updateFromLeft); }}); ['hCompanyMode','hCompanyValue','hNotesMode','hNotesValue','hQualDate','hNextActionMode','hNextActionValue','hNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input', updateFromHeader); el.addEventListener('change', updateFromHeader); }}); document.getElementById('toggleSortQual').addEventListener('click',()=>{currentFilters().sortQual=!currentFilters().sortQual; save(); render();}); document.getElementById('toggleSortNextStep').addEventListener('click',()=>{currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render();}); document.getElementById('sortChipQual').addEventListener('click',()=>{currentFilters().sortQual=!currentFilters().sortQual; save(); render();}); document.getElementById('sortChipNextStep').addEventListener('click',()=>{currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render();}); document.getElementById('openFormBtn').addEventListener('click',()=>{ resetForm(); setCurrentSelectedId(null); openForm(); }); document.getElementById('closeFormBtn').addEventListener('click', closeForm); document.getElementById('formOverlay').addEventListener('click',(e)=>{ if(e.target.id==='formOverlay') closeForm(); }); document.getElementById('status').addEventListener('change',()=>{ document.getElementById('weight').value=autoWeightForStatus(document.getElementById('status').value); }); document.getElementById('resetFormBtn').addEventListener('click', resetForm); document.getElementById('openFiltersBtn').addEventListener('click', openDrawer); document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer); document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer); document.getElementById('drawerApplyBtn').addEventListener('click', closeDrawer); document.getElementById('clearFiltersBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); }); document.getElementById('drawerClearBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); }); document.getElementById('clearSelectionBtn').addEventListener('click',()=>{ state.rows=state.rows.map(r=>ownerKeyFromValue(r.owner)===state.activeOwner ? ({...r, selected:false}) : r); save(); render(); }); document.getElementById('hQuarterAll').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hQuarterReset').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hProductAll').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); }); document.getElementById('hProductReset').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); }); document.getElementById('hWeightAll').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); }); document.getElementById('hWeightReset').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); }); document.getElementById('hStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('fStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('fStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('checkAllVisible').addEventListener('change',()=>{ const ids=new Set(getFilteredRows().map(r=>r.id)); const flag=document.getElementById('checkAllVisible').checked; state.rows=state.rows.map(r=> ids.has(r.id) ? ({...r,selected:flag}) : r); save(); render(); }); document.getElementById('oppForm').addEventListener('submit', async (e) => { e.preventDefault(); const isEdit = !!document.getElementById('recordId').value; const id = isEdit ? document.getElementById('recordId').value : uid(); const existing = state.rows.find(x => x.id === id); const formStatus = normalizeStatusValue(document.getElementById('status').value); const row = normalizeRow({ id, company: document.getElementById('company').value.trim(), owner: ownerValueFromKey(state.activeOwner), product: document.getElementById('product').value, notes: document.getElementById('notes').value.trim(), qualDate: document.getElementById('qualDate').value, nextAction: document.getElementById('nextAction').value.trim(), nextStep: document.getElementById('nextStep').value, status: formStatus, weight: autoWeightForStatus(formStatus), selected: existing ? existing.selected : false, createdAt: existing ? existing.createdAt : Date.now() }); const ok = await saveRowToSupabase(row); if (!ok) return; const idx = state.rows.findIndex(r => r.id === id); if (idx >= 0) state.rows[idx] = row; else state.rows.push(row); setCurrentSelectedId(row.id); save(); render(); closeForm(); await loadRowsFromSupabase(); }); document.getElementById('duplicateBtn').addEventListener('click', async ()=>{ const id=document.getElementById('recordId').value; const src=state.rows.find(r=>r.id===id); if(!src) return; const copy=normalizeRow({...src,id:uid(),owner:ownerValueFromKey(state.activeOwner),selected:false,createdAt:Date.now()}); const ok = await saveRowToSupabase(copy); if(!ok) return; state.rows.push(copy); setCurrentSelectedId(copy.id); save(); render(); await loadRowsFromSupabase(); }); document.getElementById('deleteBtn').addEventListener('click', async () => { const id = document.getElementById('recordId').value; if (!id) return; if (!confirm('Supprimer cette ligne ?')) return; const ok = await deleteRowFromSupabase(id); if (!ok) return; state.rows = state.rows.filter(r => r.id !== id); if (currentSelectedId() === id) setCurrentSelectedId(null); resetForm(); save(); render(); closeForm(); await loadRowsFromSupabase(); }); document.getElementById('exportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows())); document.getElementById('topExportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows())); document.getElementById('resetViewBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); state.activeTabsByOwner[state.activeOwner]='tabTableau'; state.calViewByOwner[state.activeOwner]='month'; state.calDateByOwner[state.activeOwner]=new Date(); setCurrentSelectedId(null); resetForm(); save(); render(); closeAllPops(); closeDrawer(); closeForm(); }); document.getElementById('importCsv').addEventListener('change',(e)=>{ const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{ try{ const imported=importCSVRowsFromText(reader.result); if(!imported.length) throw new Error('invalid'); state.rows = [...state.rows.filter(r=>ownerKeyFromValue(r.owner)!==state.activeOwner), ...imported]; state.filtersByOwner[state.activeOwner]=defaultFilters(); state.forecastMetaByOwner[state.activeOwner]=defaultForecastMetaEntry(); setCurrentSelectedId(null); resetForm(); save(); render(); } catch(err){ alert('Le CSV importé est invalide.'); } }; reader.readAsText(file,'utf-8'); e.target.value=''; }); document.querySelectorAll('.forecast-add-btn').forEach(btn=>btn.addEventListener('click',()=>{ const owner=state.activeOwner; const select=document.getElementById('forecastAddSelectJeremie'); const section=select ? select.value : 'sql'; addForecastLine(owner, section); })); document.querySelectorAll('.viewBtn').forEach(btn=>btn.addEventListener('click',()=>{ state.calViewByOwner[state.activeOwner]=btn.dataset.view; render(); })); document.getElementById('prevBtn').addEventListener('click',()=>shiftPeriod(-1)); document.getElementById('nextBtn').addEventListener('click',()=>shiftPeriod(1)); document.getElementById('todayBtn').addEventListener('click',()=>{ state.calDateByOwner[state.activeOwner]=new Date(); render(); }); bindFilterPopupButtons(); }
+    function bind(){
+      document.getElementById('loginSendBtn')?.addEventListener('click', sendMagicLink);
+      document.getElementById('authEmail')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendMagicLink(); });
+      document.getElementById('logoutBtn')?.addEventListener('click', logout);
+      document.querySelectorAll('.workspace-btn').forEach(btn=>btn.addEventListener('click',()=>switchWorkspace(btn.dataset.workspace))); document.querySelectorAll('.subtab-btn').forEach(btn=>btn.addEventListener('click',()=>switchSubTab(btn.dataset.tab))); ['fCompanyMode','fCompanyValue','fNotesMode','fNotesValue','fQualDate','fNextActionMode','fNextActionValue','fNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input', updateFromLeft); el.addEventListener('change', updateFromLeft); }}); ['hCompanyMode','hCompanyValue','hNotesMode','hNotesValue','hQualDate','hNextActionMode','hNextActionValue','hNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input', updateFromHeader); el.addEventListener('change', updateFromHeader); }}); document.getElementById('toggleSortQual').addEventListener('click',()=>{currentFilters().sortQual=!currentFilters().sortQual; save(); render();}); document.getElementById('toggleSortNextStep').addEventListener('click',()=>{currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render();}); document.getElementById('sortChipQual').addEventListener('click',()=>{currentFilters().sortQual=!currentFilters().sortQual; save(); render();}); document.getElementById('sortChipNextStep').addEventListener('click',()=>{currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render();}); document.getElementById('openFormBtn').addEventListener('click',()=>{ resetForm(); setCurrentSelectedId(null); openForm(); }); document.getElementById('closeFormBtn').addEventListener('click', closeForm); document.getElementById('formOverlay').addEventListener('click',(e)=>{ if(e.target.id==='formOverlay') closeForm(); }); document.getElementById('status').addEventListener('change',()=>{ document.getElementById('weight').value=autoWeightForStatus(document.getElementById('status').value); }); document.getElementById('resetFormBtn').addEventListener('click', resetForm); document.getElementById('openFiltersBtn').addEventListener('click', openDrawer); document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer); document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer); document.getElementById('drawerApplyBtn').addEventListener('click', closeDrawer); document.getElementById('clearFiltersBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); }); document.getElementById('drawerClearBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); }); document.getElementById('clearSelectionBtn').addEventListener('click',()=>{ state.rows=state.rows.map(r=>ownerKeyFromValue(r.owner)===state.activeOwner ? ({...r, selected:false}) : r); save(); render(); }); document.getElementById('hQuarterAll').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hQuarterReset').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hProductAll').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); }); document.getElementById('hProductReset').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); }); document.getElementById('hWeightAll').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); }); document.getElementById('hWeightReset').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); }); document.getElementById('hStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('fStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('fStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('checkAllVisible').addEventListener('change',()=>{ const ids=new Set(getFilteredRows().map(r=>r.id)); const flag=document.getElementById('checkAllVisible').checked; state.rows=state.rows.map(r=> ids.has(r.id) ? ({...r,selected:flag}) : r); save(); render(); }); document.getElementById('oppForm').addEventListener('submit', async (e) => { e.preventDefault(); const isEdit = !!document.getElementById('recordId').value; const id = isEdit ? document.getElementById('recordId').value : uid(); const existing = state.rows.find(x => x.id === id); const formStatus = normalizeStatusValue(document.getElementById('status').value); const row = normalizeRow({ id, company: document.getElementById('company').value.trim(), owner: ownerValueFromKey(state.activeOwner), product: document.getElementById('product').value, notes: document.getElementById('notes').value.trim(), qualDate: document.getElementById('qualDate').value, nextAction: document.getElementById('nextAction').value.trim(), nextStep: document.getElementById('nextStep').value, status: formStatus, weight: autoWeightForStatus(formStatus), selected: existing ? existing.selected : false, createdAt: existing ? existing.createdAt : Date.now() }); const ok = await saveRowToSupabase(row); if (!ok) return; const idx = state.rows.findIndex(r => r.id === id); if (idx >= 0) state.rows[idx] = row; else state.rows.push(row); setCurrentSelectedId(row.id); save(); render(); closeForm(); await loadRowsFromSupabase(); }); document.getElementById('duplicateBtn').addEventListener('click', async ()=>{ const id=document.getElementById('recordId').value; const src=state.rows.find(r=>r.id===id); if(!src) return; const copy=normalizeRow({...src,id:uid(),owner:ownerValueFromKey(state.activeOwner),selected:false,createdAt:Date.now()}); const ok = await saveRowToSupabase(copy); if(!ok) return; state.rows.push(copy); setCurrentSelectedId(copy.id); save(); render(); await loadRowsFromSupabase(); }); document.getElementById('deleteBtn').addEventListener('click', async () => { const id = document.getElementById('recordId').value; if (!id) return; if (!confirm('Supprimer cette ligne ?')) return; const ok = await deleteRowFromSupabase(id); if (!ok) return; state.rows = state.rows.filter(r => r.id !== id); if (currentSelectedId() === id) setCurrentSelectedId(null); resetForm(); save(); render(); closeForm(); await loadRowsFromSupabase(); }); document.getElementById('exportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows())); document.getElementById('topExportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows())); document.getElementById('resetViewBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); state.activeTabsByOwner[state.activeOwner]='tabTableau'; state.calViewByOwner[state.activeOwner]='month'; state.calDateByOwner[state.activeOwner]=new Date(); setCurrentSelectedId(null); resetForm(); save(); render(); closeAllPops(); closeDrawer(); closeForm(); }); document.getElementById('importCsv').addEventListener('change',(e)=>{ const file=e.target.files[0]; if(!file) return; const ownerKeyAtImport = state.activeOwner; const reader=new FileReader(); reader.onload=async()=>{ try{ const imported=importCSVRowsFromText(reader.result); if(!imported.length) throw new Error('invalid'); if(!confirm('Importer ce CSV va remplacer les lignes de la vue active dans Supabase. Continuer ?')) return; const ok = await replaceOwnerRowsInSupabase(ownerKeyAtImport, imported); if(!ok) return; state.rows = [...state.rows.filter(r=>ownerKeyFromValue(r.owner)!==ownerKeyAtImport), ...imported.map(r=>normalizeRow({...r, owner:ownerValueFromKey(ownerKeyAtImport)}))]; state.filtersByOwner[ownerKeyAtImport]=defaultFilters(); state.forecastMetaByOwner[ownerKeyAtImport]=defaultForecastMetaEntry(); setCurrentSelectedId(null); resetForm(); save(); render(); await loadRowsFromSupabase(); } catch(err){ console.error(err); alert('Le CSV importé est invalide.'); } }; reader.readAsText(file,'utf-8'); e.target.value=''; }); document.querySelectorAll('.forecast-add-btn').forEach(btn=>btn.addEventListener('click',()=>{ const owner=state.activeOwner; const select=document.getElementById('forecastAddSelectJeremie'); const section=select ? select.value : 'sql'; addForecastLine(owner, section); })); document.querySelectorAll('.viewBtn').forEach(btn=>btn.addEventListener('click',()=>{ state.calViewByOwner[state.activeOwner]=btn.dataset.view; render(); })); document.getElementById('prevBtn').addEventListener('click',()=>shiftPeriod(-1)); document.getElementById('nextBtn').addEventListener('click',()=>shiftPeriod(1)); document.getElementById('todayBtn').addEventListener('click',()=>{ state.calDateByOwner[state.activeOwner]=new Date(); render(); }); bindFilterPopupButtons(); }
     function render(){ const filtered=getFilteredRows(); const dashboard=getRowsForCalendarAndForecast(); syncInputs(); renderActiveChips(); renderSummary(); renderSelectionBanner(); renderKpis(filtered); renderTable(filtered); renderForecastBoards(); renderCalendar(dashboard); save(); }
-    bind(); resetForm(); render(); initSupabaseDashboard();
+    bind(); resetForm(); render(); listenAuthChanges(); initSupabaseDashboard();
   </script>
 </body>
 </html>
