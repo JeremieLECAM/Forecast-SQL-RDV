@@ -310,6 +310,7 @@
         <button class="btn dark" id="topExportCsvBtn" type="button">Export CSV</button>
         <label class="btn dark" for="importCsv" style="cursor:pointer;">Import CSV</label>
         <input id="importCsv" type="file" accept=".csv,text/csv" style="display:none;">
+        <button class="btn dark" id="seedDemoBtn" type="button" style="display:none;">Initialiser données test</button>
       </div>
     </header>
     <div class="tabs" id="workspaceTabs">
@@ -654,6 +655,42 @@
       showLogin();
       return null;
     }
+    async function verifyTeamAccess(user) {
+      const email = String(user?.email || '').trim().toLowerCase();
+      if (!email) {
+        showLogin('Impossible de lire ton email de session. Reconnecte-toi.');
+        return false;
+      }
+      if (!isTeamEmail(email)) {
+        await sb.auth.signOut();
+        showLogin(`Accès réservé aux emails ${TEAM_EMAIL_DOMAIN}.`);
+        return false;
+      }
+      const { data, error } = await sb
+        .from('team_members')
+        .select('email,active')
+        .ilike('email', email)
+        .eq('active', true)
+        .maybeSingle();
+      if (error) {
+        console.error(error);
+        setAuthStatus('Erreur autorisation', 'warn');
+        alert('Impossible de vérifier ton accès équipe dans Supabase : ' + error.message + '\n\nVérifie que la table team_members existe et que ton email y est bien ajouté.');
+        return false;
+      }
+      if (!data) {
+        setAuthStatus('Accès refusé', 'warn');
+        alert(`Ton email (${email}) est bien connecté, mais il n\'est pas autorisé dans Supabase.\n\nAjoute-le dans la table team_members avec active = true.`);
+        await sb.auth.signOut();
+        return false;
+      }
+      return true;
+    }
+    function updateEmptyDatabaseUi(rowCount) {
+      const seedBtn = document.getElementById('seedDemoBtn');
+      if (seedBtn) seedBtn.style.display = rowCount ? 'none' : 'inline-flex';
+      if (!rowCount) setAuthStatus('Live : base vide', 'warn');
+    }
     async function loadRowsFromSupabase() {
       const { data, error } = await sb.from(SUPABASE_TABLE).select('*').order('next_step', { ascending: true, nullsFirst: false }).order('company', { ascending: true });
       if (error) {
@@ -663,6 +700,8 @@
         return;
       }
       state.rows = (data || []).map(fromDbRow);
+      updateEmptyDatabaseUi(state.rows.length);
+      if (state.rows.length) setAuthStatus(currentUser?.email ? `Live : ${currentUser.email} · ${state.rows.length} ligne${state.rows.length > 1 ? 's' : ''}` : `Live : ${state.rows.length} ligne${state.rows.length > 1 ? 's' : ''}`, 'live');
       render();
     }
     async function saveRowToSupabase(row) {
@@ -709,6 +748,26 @@
       }
       return true;
     }
+    async function seedDemoRowsToSupabase() {
+      const { data: sessionData } = await sb.auth.getSession();
+      if (!sessionData.session) {
+        showLogin('Ta session a expiré. Reconnecte-toi pour initialiser les données.');
+        return;
+      }
+      const user = sessionData.session.user;
+      const allowed = await verifyTeamAccess(user);
+      if (!allowed) return;
+      if (!confirm('Créer 3 lignes de test dans Supabase ?\n\nÀ utiliser uniquement si la base est vide.')) return;
+      const rows = demoRows.map(r => normalizeRow({ ...r, id: uid(), createdAt: Date.now() }));
+      const { error } = await sb.from(SUPABASE_TABLE).upsert(rows.map(r => ({ ...toDbRow(r), updated_at: new Date().toISOString() })), { onConflict:'id' });
+      if (error) {
+        console.error(error);
+        alert('Impossible d’initialiser les données test : ' + error.message);
+        return;
+      }
+      await loadRowsFromSupabase();
+      alert('Données test créées dans Supabase.');
+    }
     function startSupabaseRealtime() {
       if (realtimeChannel) return;
       realtimeChannel = sb.channel('dashboard-rdv-live')
@@ -727,6 +786,8 @@
       sb.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
           showApp(session.user);
+          const allowed = await verifyTeamAccess(session.user);
+          if (!allowed) return;
           await loadRowsFromSupabase();
           startSupabaseRealtime();
         }
@@ -745,6 +806,8 @@
     async function initSupabaseDashboard() {
       const user = await requireLogin();
       if (!user) return;
+      const allowed = await verifyTeamAccess(user);
+      if (!allowed) return;
       await loadRowsFromSupabase();
       startSupabaseRealtime();
     }
@@ -759,7 +822,7 @@
     function renderSelectionBanner(){ const banner=document.getElementById('selectionBanner'); const txt=document.getElementById('selectionText'); const count=getFilteredRows().filter(r=>r.selected).length; if(count){ banner.classList.add('show'); txt.textContent=`Sélection active : ${count} ligne${count>1?'s':''} cochée${count>1?'s':''}`; } else { banner.classList.remove('show'); } }
     function resetForm(){ document.getElementById('oppForm').reset(); document.getElementById('recordId').value=''; document.getElementById('product').value=''; document.getElementById('status').value=''; document.getElementById('weight').value=''; }
     function fillForm(r, open=true){ document.getElementById('recordId').value=r.id || ''; document.getElementById('company').value=r.company || ''; document.getElementById('product').value=r.product || ''; document.getElementById('notes').value=r.notes || ''; document.getElementById('qualDate').value=r.qualDate || ''; document.getElementById('nextAction').value=r.nextAction || ''; document.getElementById('nextStep').value=r.nextStep || ''; document.getElementById('status').value=normalizeStatusValue(r.status) || ''; document.getElementById('weight').value=autoWeightForStatus(r.status); if(open) document.getElementById('formOverlay').classList.add('show'); }
-    function renderTable(rows){ const tbody=document.getElementById('tbody'); document.getElementById('rowCount').textContent=`${rows.length} ligne${rows.length>1?'s':''}`; tbody.innerHTML=''; const activeSelectedId = currentSelectedId(); const checkAll=document.getElementById('checkAllVisible'); const allChecked = rows.length && rows.every(r=>r.selected); checkAll.checked=!!allChecked; checkAll.indeterminate = rows.some(r=>r.selected) && !allChecked; rows.forEach(r=>{ const tr=document.createElement('tr'); if(activeSelectedId===r.id) tr.classList.add('selected'); tr.innerHTML=`<td class="cell-checkbox"><input class="row-check" data-id="${esc(r.id)}" type="checkbox" ${r.selected ? 'checked' : ''}></td><td><span class="pill" style="background:#fafafa;color:#000;border-color:#ddd;">${esc(quarterLabelForRow(r))}</span></td><td><strong class="${companyClassForStatus(r.status)}">${esc(r.company||'—')}</strong></td><td>${r.product ? `<span class="pill" style="background:#fafafa;color:#000;border-color:#ddd;">${esc(r.product)}</span>` : '—'}</td><td>${esc(r.notes||'—')}</td><td>${formatDate(r.qualDate)}</td><td>${esc(r.nextAction||'—')}</td><td>${formatDate(r.nextStep)}</td><td><span class="pill ${badgeClass(displayStatus(r))}">${esc(displayStatus(r))}</span></td><td><strong>${r.weight ? niceWeight(r.weight) : '—'}</strong></td><td><button class="btn icon danger delete-row-btn" type="button" data-id="${esc(r.id)}" title="Supprimer cette ligne">✕</button></td>`; tr.addEventListener('click',(e)=>{ if(e.target && (e.target.classList.contains('row-check') || e.target.classList.contains('delete-row-btn'))) return; setCurrentSelectedId(r.id); fillForm(r,true); save(); render(); }); tbody.appendChild(tr); }); tbody.querySelectorAll('.row-check').forEach(cb=>{ cb.addEventListener('click',e=>e.stopPropagation()); cb.addEventListener('change',()=>{ const row=state.rows.find(x=>x.id===cb.dataset.id); if(row) row.selected=cb.checked; save(); render(); }); }); tbody.querySelectorAll('.delete-row-btn').forEach(btn => { btn.addEventListener('click', async (e) => { e.stopPropagation(); const id = btn.dataset.id; if (!id) return; if (!confirm('Supprimer cette ligne ?')) return; const ok = await deleteRowFromSupabase(id); if (!ok) return; state.rows = state.rows.filter(r => r.id !== id); if (currentSelectedId() === id) setCurrentSelectedId(null); save(); render(); await loadRowsFromSupabase(); });}); if(!rows.length){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="11" style="padding:18px 10px;text-align:center;color:#666;">Aucune opportunité ne correspond aux filtres actuels.</td>'; tbody.appendChild(tr); } }
+    function renderTable(rows){ const tbody=document.getElementById('tbody'); document.getElementById('rowCount').textContent=`${rows.length} ligne${rows.length>1?'s':''}`; tbody.innerHTML=''; const activeSelectedId = currentSelectedId(); const checkAll=document.getElementById('checkAllVisible'); const allChecked = rows.length && rows.every(r=>r.selected); checkAll.checked=!!allChecked; checkAll.indeterminate = rows.some(r=>r.selected) && !allChecked; if(!rows.length){ tbody.innerHTML='<tr><td colspan="11" style="padding:18px;text-align:center;color:#666;background:#fff;">Aucune donnée affichée. Vérifie d’abord que ton email est dans <strong>team_members</strong>, puis que la table <strong>dashboard_RDV</strong> contient des lignes. Si la base est vide, utilise <strong>Import CSV</strong>, <strong>+ Ajouter</strong> ou le bouton <strong>Initialiser données test</strong>.</td></tr>'; return; } rows.forEach(r=>{ const tr=document.createElement('tr'); if(activeSelectedId===r.id) tr.classList.add('selected'); tr.innerHTML=`<td class="cell-checkbox"><input class="row-check" data-id="${esc(r.id)}" type="checkbox" ${r.selected ? 'checked' : ''}></td><td><span class="pill" style="background:#fafafa;color:#000;border-color:#ddd;">${esc(quarterLabelForRow(r))}</span></td><td><strong class="${companyClassForStatus(r.status)}">${esc(r.company||'—')}</strong></td><td>${r.product ? `<span class="pill" style="background:#fafafa;color:#000;border-color:#ddd;">${esc(r.product)}</span>` : '—'}</td><td>${esc(r.notes||'—')}</td><td>${formatDate(r.qualDate)}</td><td>${esc(r.nextAction||'—')}</td><td>${formatDate(r.nextStep)}</td><td><span class="pill ${badgeClass(displayStatus(r))}">${esc(displayStatus(r))}</span></td><td><strong>${r.weight ? niceWeight(r.weight) : '—'}</strong></td><td><button class="btn icon danger delete-row-btn" type="button" data-id="${esc(r.id)}" title="Supprimer cette ligne">✕</button></td>`; tr.addEventListener('click',(e)=>{ if(e.target && (e.target.classList.contains('row-check') || e.target.classList.contains('delete-row-btn'))) return; setCurrentSelectedId(r.id); fillForm(r,true); save(); render(); }); tbody.appendChild(tr); }); tbody.querySelectorAll('.row-check').forEach(cb=>{ cb.addEventListener('click',e=>e.stopPropagation()); cb.addEventListener('change',()=>{ const row=state.rows.find(x=>x.id===cb.dataset.id); if(row) row.selected=cb.checked; save(); render(); }); }); tbody.querySelectorAll('.delete-row-btn').forEach(btn => { btn.addEventListener('click', async (e) => { e.stopPropagation(); const id = btn.dataset.id; if (!id) return; if (!confirm('Supprimer cette ligne ?')) return; const ok = await deleteRowFromSupabase(id); if (!ok) return; state.rows = state.rows.filter(r => r.id !== id); if (currentSelectedId() === id) setCurrentSelectedId(null); save(); render(); await loadRowsFromSupabase(); });}); if(!rows.length){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="11" style="padding:18px 10px;text-align:center;color:#666;">Aucune opportunité ne correspond aux filtres actuels.</td>'; tbody.appendChild(tr); } }
     function getQuarterSourceDate(r){ const s=plain(displayStatus(r)); if(s==='sql' || s==='sql to nurture') return r.qualDate || r.nextStep || ''; return r.nextStep || r.qualDate || ''; }
     function getQuarterNumberFromDateStr(dateStr){ if(!dateStr) return null; const d=new Date(dateStr+'T00:00:00'); return isNaN(d) ? null : Math.floor(d.getMonth()/3)+1; }
     function getForecastQuarter(row){ return getQuarterNumberFromDateStr(getQuarterSourceDate(row)); }
@@ -998,6 +1061,7 @@
       document.getElementById('loginSendBtn')?.addEventListener('click', sendMagicLink);
       document.getElementById('authEmail')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendMagicLink(); });
       document.getElementById('logoutBtn')?.addEventListener('click', logout);
+      document.getElementById('seedDemoBtn')?.addEventListener('click', seedDemoRowsToSupabase);
       document.querySelectorAll('.workspace-btn').forEach(btn=>btn.addEventListener('click',()=>switchWorkspace(btn.dataset.workspace))); document.querySelectorAll('.subtab-btn').forEach(btn=>btn.addEventListener('click',()=>switchSubTab(btn.dataset.tab))); ['fCompanyMode','fCompanyValue','fNotesMode','fNotesValue','fQualDate','fNextActionMode','fNextActionValue','fNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input', updateFromLeft); el.addEventListener('change', updateFromLeft); }}); ['hCompanyMode','hCompanyValue','hNotesMode','hNotesValue','hQualDate','hNextActionMode','hNextActionValue','hNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input', updateFromHeader); el.addEventListener('change', updateFromHeader); }}); document.getElementById('toggleSortQual').addEventListener('click',()=>{currentFilters().sortQual=!currentFilters().sortQual; save(); render();}); document.getElementById('toggleSortNextStep').addEventListener('click',()=>{currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render();}); document.getElementById('sortChipQual').addEventListener('click',()=>{currentFilters().sortQual=!currentFilters().sortQual; save(); render();}); document.getElementById('sortChipNextStep').addEventListener('click',()=>{currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render();}); document.getElementById('openFormBtn').addEventListener('click',()=>{ resetForm(); setCurrentSelectedId(null); openForm(); }); document.getElementById('closeFormBtn').addEventListener('click', closeForm); document.getElementById('formOverlay').addEventListener('click',(e)=>{ if(e.target.id==='formOverlay') closeForm(); }); document.getElementById('status').addEventListener('change',()=>{ document.getElementById('weight').value=autoWeightForStatus(document.getElementById('status').value); }); document.getElementById('resetFormBtn').addEventListener('click', resetForm); document.getElementById('openFiltersBtn').addEventListener('click', openDrawer); document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer); document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer); document.getElementById('drawerApplyBtn').addEventListener('click', closeDrawer); document.getElementById('clearFiltersBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); }); document.getElementById('drawerClearBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); }); document.getElementById('clearSelectionBtn').addEventListener('click',()=>{ state.rows=state.rows.map(r=>ownerKeyFromValue(r.owner)===state.activeOwner ? ({...r, selected:false}) : r); save(); render(); }); document.getElementById('hQuarterAll').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hQuarterReset').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hProductAll').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); }); document.getElementById('hProductReset').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); }); document.getElementById('hWeightAll').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); }); document.getElementById('hWeightReset').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); }); document.getElementById('hStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('fStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('fStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('checkAllVisible').addEventListener('change',()=>{ const ids=new Set(getFilteredRows().map(r=>r.id)); const flag=document.getElementById('checkAllVisible').checked; state.rows=state.rows.map(r=> ids.has(r.id) ? ({...r,selected:flag}) : r); save(); render(); }); document.getElementById('oppForm').addEventListener('submit', async (e) => { e.preventDefault(); const isEdit = !!document.getElementById('recordId').value; const id = isEdit ? document.getElementById('recordId').value : uid(); const existing = state.rows.find(x => x.id === id); const formStatus = normalizeStatusValue(document.getElementById('status').value); const row = normalizeRow({ id, company: document.getElementById('company').value.trim(), owner: ownerValueFromKey(state.activeOwner), product: document.getElementById('product').value, notes: document.getElementById('notes').value.trim(), qualDate: document.getElementById('qualDate').value, nextAction: document.getElementById('nextAction').value.trim(), nextStep: document.getElementById('nextStep').value, status: formStatus, weight: autoWeightForStatus(formStatus), selected: existing ? existing.selected : false, createdAt: existing ? existing.createdAt : Date.now() }); const ok = await saveRowToSupabase(row); if (!ok) return; const idx = state.rows.findIndex(r => r.id === id); if (idx >= 0) state.rows[idx] = row; else state.rows.push(row); setCurrentSelectedId(row.id); save(); render(); closeForm(); await loadRowsFromSupabase(); }); document.getElementById('duplicateBtn').addEventListener('click', async ()=>{ const id=document.getElementById('recordId').value; const src=state.rows.find(r=>r.id===id); if(!src) return; const copy=normalizeRow({...src,id:uid(),owner:ownerValueFromKey(state.activeOwner),selected:false,createdAt:Date.now()}); const ok = await saveRowToSupabase(copy); if(!ok) return; state.rows.push(copy); setCurrentSelectedId(copy.id); save(); render(); await loadRowsFromSupabase(); }); document.getElementById('deleteBtn').addEventListener('click', async () => { const id = document.getElementById('recordId').value; if (!id) return; if (!confirm('Supprimer cette ligne ?')) return; const ok = await deleteRowFromSupabase(id); if (!ok) return; state.rows = state.rows.filter(r => r.id !== id); if (currentSelectedId() === id) setCurrentSelectedId(null); resetForm(); save(); render(); closeForm(); await loadRowsFromSupabase(); }); document.getElementById('exportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows())); document.getElementById('topExportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows())); document.getElementById('resetViewBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); state.activeTabsByOwner[state.activeOwner]='tabTableau'; state.calViewByOwner[state.activeOwner]='month'; state.calDateByOwner[state.activeOwner]=new Date(); setCurrentSelectedId(null); resetForm(); save(); render(); closeAllPops(); closeDrawer(); closeForm(); }); document.getElementById('importCsv').addEventListener('change',(e)=>{ const file=e.target.files[0]; if(!file) return; const ownerKeyAtImport = state.activeOwner; const reader=new FileReader(); reader.onload=async()=>{ try{ const imported=importCSVRowsFromText(reader.result); if(!imported.length) throw new Error('invalid'); if(!confirm('Importer ce CSV va remplacer les lignes de la vue active dans Supabase. Continuer ?')) return; const ok = await replaceOwnerRowsInSupabase(ownerKeyAtImport, imported); if(!ok) return; state.rows = [...state.rows.filter(r=>ownerKeyFromValue(r.owner)!==ownerKeyAtImport), ...imported.map(r=>normalizeRow({...r, owner:ownerValueFromKey(ownerKeyAtImport)}))]; state.filtersByOwner[ownerKeyAtImport]=defaultFilters(); state.forecastMetaByOwner[ownerKeyAtImport]=defaultForecastMetaEntry(); setCurrentSelectedId(null); resetForm(); save(); render(); await loadRowsFromSupabase(); } catch(err){ console.error(err); alert('Le CSV importé est invalide.'); } }; reader.readAsText(file,'utf-8'); e.target.value=''; }); document.querySelectorAll('.forecast-add-btn').forEach(btn=>btn.addEventListener('click',()=>{ const owner=state.activeOwner; const select=document.getElementById('forecastAddSelectJeremie'); const section=select ? select.value : 'sql'; addForecastLine(owner, section); })); document.querySelectorAll('.viewBtn').forEach(btn=>btn.addEventListener('click',()=>{ state.calViewByOwner[state.activeOwner]=btn.dataset.view; render(); })); document.getElementById('prevBtn').addEventListener('click',()=>shiftPeriod(-1)); document.getElementById('nextBtn').addEventListener('click',()=>shiftPeriod(1)); document.getElementById('todayBtn').addEventListener('click',()=>{ state.calDateByOwner[state.activeOwner]=new Date(); render(); }); bindFilterPopupButtons(); }
     function render(){ const filtered=getFilteredRows(); const dashboard=getRowsForCalendarAndForecast(); syncInputs(); renderActiveChips(); renderSummary(); renderSelectionBanner(); renderKpis(filtered); renderTable(filtered); renderForecastBoards(); renderCalendar(dashboard); save(); }
     bind(); resetForm(); render(); listenAuthChanges(); initSupabaseDashboard();
