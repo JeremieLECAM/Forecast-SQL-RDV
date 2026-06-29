@@ -512,7 +512,7 @@
     const SUPABASE_URL = 'https://hcpeikdzzuoqjfrlqlqi.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_OxKa7r607jY25d8h2K1Usg_L2PWZn-k';
     const SUPABASE_TABLE = 'dashboard_RDV';
-    const SUPABASE_AUTH_STORAGE_KEY = 'sb-xvnbxtzhrsmrvrssfaym-auth-token';
+    const SUPABASE_AUTH_STORAGE_KEY = 'sb-' + new URL(SUPABASE_URL).host.split('.')[0] + '-auth-token';
     const APP_REDIRECT_URL = window.location.origin + window.location.pathname;
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
@@ -591,6 +591,33 @@
     function weightToDb(value) { if (value === '' || value === undefined || value === null) return null; return Number(value); }
     function toDbRow(r) { return { id: r.id, company: r.company || '', owner: normalizeOwnerValue(r.owner), product: r.product || '', notes: r.notes || '', qual_date: emptyToNull(r.qualDate), next_action: r.nextAction || '', next_step: emptyToNull(r.nextStep), status: normalizeStatusValue(r.status || ''), weight: weightToDb(r.weight), selected: !!r.selected, created_at_ms: r.createdAt || Date.now() }; }
     function fromDbRow(r) { return normalizeRow({ id: r.id, company: r.company || '', owner: r.owner || 'Jérémie', product: r.product || '', notes: r.notes || '', qualDate: r.qual_date || '', nextAction: r.next_action || '', nextStep: r.next_step || '', status: r.status || '', weight: r.weight === null || r.weight === undefined ? '' : String(r.weight), selected: !!r.selected, createdAt: r.created_at_ms || Date.now() }); }
+
+    function cleanSupabaseUrlHash() {
+      if (!window.location.hash) return;
+      const hash = window.location.hash || '';
+      const hasSupabaseTokens = hash.includes('access_token=') || hash.includes('refresh_token=') || hash.includes('type=') || hash.includes('error=') || hash.includes('error_description=');
+      if (!hasSupabaseTokens) return;
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      } catch (e) {
+        console.warn('Impossible de nettoyer l’URL Supabase.', e);
+      }
+    }
+    async function safeGetSession() {
+      try {
+        return await sb.auth.getSession();
+      } catch (error) {
+        return { data: { session: null }, error };
+      }
+    }
+    function withTimeout(promise, timeoutMs = 8000, message = 'Opération bloquée') {
+      let timer;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+      });
+      return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+    }
+
     function setAuthUiMessage(message, kind='') {
       const msg = document.getElementById('loginMsg');
       if (!msg) return;
@@ -1082,7 +1109,189 @@
       document.getElementById('authEmail')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendMagicLink(); });
       document.getElementById('logoutBtn')?.addEventListener('click', logout);
       document.getElementById('seedDemoBtn')?.addEventListener('click', seedDemoRowsToSupabase);
-      document.querySelectorAll('.workspace-btn').forEach(btn=>btn.addEventListener('click',()=>switchWorkspace(btn.dataset.workspace))); document.querySelectorAll('.subtab-btn').forEach(btn=>btn.addEventListener('click',()=>switchSubTab(btn.dataset.tab))); ['fCompanyMode','fCompanyValue','fNotesMode','fNotesValue','fQualDate','fNextActionMode','fNextActionValue','fNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input', updateFromLeft); el.addEventListener('change', updateFromLeft); }}); ['hCompanyMode','hCompanyValue','hNotesMode','hNotesValue','hQualDate','hNextActionMode','hNextActionValue','hNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.addEventListener('input', updateFromHeader); el.addEventListener('change', updateFromHeader); }}); document.getElementById('toggleSortQual').addEventListener('click',()=>{currentFilters().sortQual=!currentFilters().sortQual; save(); render();}); document.getElementById('toggleSortNextStep').addEventListener('click',()=>{currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render();}); document.getElementById('sortChipQual').addEventListener('click',()=>{currentFilters().sortQual=!currentFilters().sortQual; save(); render();}); document.getElementById('sortChipNextStep').addEventListener('click',()=>{currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render();}); document.getElementById('openFormBtn').addEventListener('click',()=>{ resetForm(); setCurrentSelectedId(null); openForm(); }); document.getElementById('closeFormBtn').addEventListener('click', closeForm); document.getElementById('formOverlay').addEventListener('click',(e)=>{ if(e.target.id==='formOverlay') closeForm(); }); document.getElementById('status').addEventListener('change',()=>{ document.getElementById('weight').value=autoWeightForStatus(document.getElementById('status').value); }); document.getElementById('resetFormBtn').addEventListener('click', resetForm); document.getElementById('openFiltersBtn').addEventListener('click', openDrawer); document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer); document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer); document.getElementById('drawerApplyBtn').addEventListener('click', closeDrawer); document.getElementById('clearFiltersBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); }); document.getElementById('drawerClearBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); }); document.getElementById('clearSelectionBtn').addEventListener('click',()=>{ state.rows=state.rows.map(r=>ownerKeyFromValue(r.owner)===state.activeOwner ? ({...r, selected:false}) : r); save(); render(); }); document.getElementById('hQuarterAll').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hQuarterReset').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hProductAll').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); }); document.getElementById('hProductReset').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); }); document.getElementById('hWeightAll').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); }); document.getElementById('hWeightReset').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); }); document.getElementById('hStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('hStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('fStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('fStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); }); document.getElementById('checkAllVisible').addEventListener('change',()=>{ const ids=new Set(getFilteredRows().map(r=>r.id)); const flag=document.getElementById('checkAllVisible').checked; state.rows=state.rows.map(r=> ids.has(r.id) ? ({...r,selected:flag}) : r); save(); render(); }); document.getElementById('oppForm').addEventListener('submit', async (e) => { e.preventDefault(); const isEdit = !!document.getElementById('recordId').value; const id = isEdit ? document.getElementById('recordId').value : uid(); const existing = state.rows.find(x => x.id === id); const formStatus = normalizeStatusValue(document.getElementById('status').value); const row = normalizeRow({ id, company: document.getElementById('company').value.trim(), owner: ownerValueFromKey(state.activeOwner), product: document.getElementById('product').value, notes: document.getElementById('notes').value.trim(), qualDate: document.getElementById('qualDate').value, nextAction: document.getElementById('nextAction').value.trim(), nextStep: document.getElementById('nextStep').value, status: formStatus, weight: autoWeightForStatus(formStatus), selected: existing ? existing.selected : false, createdAt: existing ? existing.createdAt : Date.now() }); const ok = await saveRowToSupabase(row); if (!ok) return; const idx = state.rows.findIndex(r => r.id === id); if (idx >= 0) state.rows[idx] = row; else state.rows.push(row); setCurrentSelectedId(row.id); save(); render(); closeForm(); await loadRowsFromSupabase(); }); document.getElementById('duplicateBtn').addEventListener('click', async ()=>{ const id=document.getElementById('recordId').value; const src=state.rows.find(r=>r.id===id); if(!src) return; const copy=normalizeRow({...src,id:uid(),owner:ownerValueFromKey(state.activeOwner),selected:false,createdAt:Date.now()}); const ok = await saveRowToSupabase(copy); if(!ok) return; state.rows.push(copy); setCurrentSelectedId(copy.id); save(); render(); await loadRowsFromSupabase(); }); document.getElementById('deleteBtn').addEventListener('click', async () => { const id = document.getElementById('recordId').value; if (!id) return; if (!confirm('Supprimer cette ligne ?')) return; const ok = await deleteRowFromSupabase(id); if (!ok) return; state.rows = state.rows.filter(r => r.id !== id); if (currentSelectedId() === id) setCurrentSelectedId(null); resetForm(); save(); render(); closeForm(); await loadRowsFromSupabase(); }); document.getElementById('exportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows())); document.getElementById('topExportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows())); document.getElementById('resetViewBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); state.activeTabsByOwner[state.activeOwner]='tabTableau'; state.calViewByOwner[state.activeOwner]='month'; state.calDateByOwner[state.activeOwner]=new Date(); setCurrentSelectedId(null); resetForm(); save(); render(); closeAllPops(); closeDrawer(); closeForm(); }); document.getElementById('importCsv').addEventListener('change',(e)=>{ const file=e.target.files[0]; if(!file) return; const ownerKeyAtImport = state.activeOwner; const reader=new FileReader(); reader.onload=async()=>{ try{ const imported=importCSVRowsFromText(reader.result); if(!imported.length) throw new Error('invalid'); if(!confirm('Importer ce CSV va remplacer les lignes de la vue active dans Supabase. Continuer ?')) return; const ok = await replaceOwnerRowsInSupabase(ownerKeyAtImport, imported); if(!ok) return; state.rows = [...state.rows.filter(r=>ownerKeyFromValue(r.owner)!==ownerKeyAtImport), ...imported.map(r=>normalizeRow({...r, owner:ownerValueFromKey(ownerKeyAtImport)}))]; state.filtersByOwner[ownerKeyAtImport]=defaultFilters(); state.forecastMetaByOwner[ownerKeyAtImport]=defaultForecastMetaEntry(); setCurrentSelectedId(null); resetForm(); save(); render(); await loadRowsFromSupabase(); } catch(err){ console.error(err); alert('Le CSV importé est invalide.'); } }; reader.readAsText(file,'utf-8'); e.target.value=''; }); document.querySelectorAll('.forecast-add-btn').forEach(btn=>btn.addEventListener('click',()=>{ const owner=state.activeOwner; const select=document.getElementById('forecastAddSelectJeremie'); const section=select ? select.value : 'sql'; addForecastLine(owner, section); })); document.querySelectorAll('.viewBtn').forEach(btn=>btn.addEventListener('click',()=>{ state.calViewByOwner[state.activeOwner]=btn.dataset.view; render(); })); document.getElementById('prevBtn').addEventListener('click',()=>shiftPeriod(-1)); document.getElementById('nextBtn').addEventListener('click',()=>shiftPeriod(1)); document.getElementById('todayBtn').addEventListener('click',()=>{ state.calDateByOwner[state.activeOwner]=new Date(); render(); }); bindFilterPopupButtons(); }
+
+      document.querySelectorAll('.workspace-btn').forEach(btn=>btn.addEventListener('click',()=>switchWorkspace(btn.dataset.workspace)));
+      document.querySelectorAll('.subtab-btn').forEach(btn=>btn.addEventListener('click',()=>switchSubTab(btn.dataset.tab)));
+
+      ['fCompanyMode','fCompanyValue','fNotesMode','fNotesValue','fQualDate','fNextActionMode','fNextActionValue','fNextStep'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){
+          el.addEventListener('input', updateFromLeft);
+          el.addEventListener('change', updateFromLeft);
+        }
+      });
+
+      ['hCompanyMode','hCompanyValue','hNotesMode','hNotesValue','hQualDate','hNextActionMode','hNextActionValue','hNextStep'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){
+          el.addEventListener('input', updateFromHeader);
+          el.addEventListener('change', updateFromHeader);
+        }
+      });
+
+      document.getElementById('toggleSortQual').addEventListener('click',()=>{ currentFilters().sortQual=!currentFilters().sortQual; save(); render(); });
+      document.getElementById('toggleSortNextStep').addEventListener('click',()=>{ currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render(); });
+      document.getElementById('sortChipQual').addEventListener('click',()=>{ currentFilters().sortQual=!currentFilters().sortQual; save(); render(); });
+      document.getElementById('sortChipNextStep').addEventListener('click',()=>{ currentFilters().sortNextStep=!currentFilters().sortNextStep; save(); render(); });
+
+      document.getElementById('openFormBtn').addEventListener('click',()=>{ resetForm(); setCurrentSelectedId(null); openForm(); });
+      document.getElementById('closeFormBtn').addEventListener('click', closeForm);
+      document.getElementById('formOverlay').addEventListener('click',(e)=>{ if(e.target.id==='formOverlay') closeForm(); });
+      document.getElementById('status').addEventListener('change',()=>{ document.getElementById('weight').value=autoWeightForStatus(document.getElementById('status').value); });
+      document.getElementById('resetFormBtn').addEventListener('click', resetForm);
+
+      document.getElementById('openFiltersBtn').addEventListener('click', openDrawer);
+      document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer);
+      document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer);
+      document.getElementById('drawerApplyBtn').addEventListener('click', closeDrawer);
+      document.getElementById('clearFiltersBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); });
+      document.getElementById('drawerClearBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); });
+      document.getElementById('clearSelectionBtn').addEventListener('click',()=>{
+        state.rows=state.rows.map(r=>ownerKeyFromValue(r.owner)===state.activeOwner ? ({...r, selected:false}) : r);
+        save();
+        render();
+      });
+
+      document.getElementById('hQuarterAll').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); });
+      document.getElementById('hQuarterReset').addEventListener('click',()=>{ currentFilters().quarters=[...QUARTER_FILTER_OPTIONS]; save(); render(); });
+      document.getElementById('hProductAll').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); });
+      document.getElementById('hProductReset').addEventListener('click',()=>{ currentFilters().products=[...PRODUCTS]; save(); render(); });
+      document.getElementById('hWeightAll').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); });
+      document.getElementById('hWeightReset').addEventListener('click',()=>{ currentFilters().weights=[...WEIGHTS]; save(); render(); });
+      document.getElementById('hStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); });
+      document.getElementById('hStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); });
+      document.getElementById('fStatusAll').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); });
+      document.getElementById('fStatusReset').addEventListener('click',()=>{ currentFilters().statuses=[...STATUS_FILTER_OPTIONS]; save(); render(); });
+
+      document.getElementById('checkAllVisible').addEventListener('change',()=>{
+        const ids = new Set(getFilteredRows().map(r=>r.id));
+        const flag = document.getElementById('checkAllVisible').checked;
+        state.rows = state.rows.map(r=> ids.has(r.id) ? ({...r,selected:flag}) : r);
+        save();
+        render();
+      });
+
+      document.getElementById('oppForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const isEdit = !!document.getElementById('recordId').value;
+        const id = isEdit ? document.getElementById('recordId').value : uid();
+        const existing = state.rows.find(x => x.id === id);
+        const formStatus = normalizeStatusValue(document.getElementById('status').value);
+        const row = normalizeRow({
+          id,
+          company: document.getElementById('company').value.trim(),
+          owner: ownerValueFromKey(state.activeOwner),
+          product: document.getElementById('product').value,
+          notes: document.getElementById('notes').value.trim(),
+          qualDate: document.getElementById('qualDate').value,
+          nextAction: document.getElementById('nextAction').value.trim(),
+          nextStep: document.getElementById('nextStep').value,
+          status: formStatus,
+          weight: autoWeightForStatus(formStatus),
+          selected: existing ? existing.selected : false,
+          createdAt: existing ? existing.createdAt : Date.now()
+        });
+        const ok = await saveRowToSupabase(row);
+        if (!ok) return;
+        const idx = state.rows.findIndex(r => r.id === id);
+        if (idx >= 0) state.rows[idx] = row;
+        else state.rows.push(row);
+        setCurrentSelectedId(row.id);
+        save();
+        render();
+        closeForm();
+        await loadRowsFromSupabase();
+      });
+
+      document.getElementById('duplicateBtn').addEventListener('click', async ()=>{
+        const id=document.getElementById('recordId').value;
+        const src=state.rows.find(r=>r.id===id);
+        if(!src) return;
+        const copy=normalizeRow({...src,id:uid(),owner:ownerValueFromKey(state.activeOwner),selected:false,createdAt:Date.now()});
+        const ok = await saveRowToSupabase(copy);
+        if(!ok) return;
+        state.rows.push(copy);
+        setCurrentSelectedId(copy.id);
+        save();
+        render();
+        await loadRowsFromSupabase();
+      });
+
+      document.getElementById('deleteBtn').addEventListener('click', async () => {
+        const id = document.getElementById('recordId').value;
+        if (!id) return;
+        if (!confirm('Supprimer cette ligne ?')) return;
+        const ok = await deleteRowFromSupabase(id);
+        if (!ok) return;
+        state.rows = state.rows.filter(r => r.id !== id);
+        if (currentSelectedId() === id) setCurrentSelectedId(null);
+        resetForm();
+        save();
+        render();
+        closeForm();
+        await loadRowsFromSupabase();
+      });
+
+      document.getElementById('exportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows()));
+      document.getElementById('topExportCsvBtn').addEventListener('click',()=>exportCSV(getFilteredRows()));
+      document.getElementById('resetViewBtn').addEventListener('click',()=>{
+        state.filtersByOwner[state.activeOwner]=defaultFilters();
+        state.activeTabsByOwner[state.activeOwner]='tabTableau';
+        state.calViewByOwner[state.activeOwner]='month';
+        state.calDateByOwner[state.activeOwner]=new Date();
+        setCurrentSelectedId(null);
+        resetForm();
+        save();
+        render();
+        closeAllPops();
+        closeDrawer();
+        closeForm();
+      });
+
+      document.getElementById('importCsv').addEventListener('change',(e)=>{
+        const file=e.target.files[0];
+        if(!file) return;
+        const ownerKeyAtImport = state.activeOwner;
+        const reader=new FileReader();
+        reader.onload=async()=>{
+          try{
+            const imported=importCSVRowsFromText(reader.result);
+            if(!imported.length) throw new Error('invalid');
+            if(!confirm('Importer ce CSV va remplacer les lignes de la vue active dans Supabase. Continuer ?')) return;
+            const ok = await replaceOwnerRowsInSupabase(ownerKeyAtImport, imported);
+            if(!ok) return;
+            state.rows = [
+              ...state.rows.filter(r=>ownerKeyFromValue(r.owner)!==ownerKeyAtImport),
+              ...imported.map(r=>normalizeRow({...r, owner:ownerValueFromKey(ownerKeyAtImport)}))
+            ];
+            state.filtersByOwner[ownerKeyAtImport]=defaultFilters();
+            state.forecastMetaByOwner[ownerKeyAtImport]=defaultForecastMetaEntry();
+            setCurrentSelectedId(null);
+            resetForm();
+            save();
+            render();
+            await loadRowsFromSupabase();
+          } catch(err){
+            console.error(err);
+            alert('Le CSV importé est invalide.');
+          }
+        };
+        reader.readAsText(file,'utf-8');
+        e.target.value='';
+      });
+
+      document.querySelectorAll('.forecast-add-btn').forEach(btn=>btn.addEventListener('click',()=>{
+        const owner=state.activeOwner;
+        const select=document.getElementById('forecastAddSelectJeremie');
+        const section=select ? select.value : 'sql';
+        addForecastLine(owner, section);
+      }));
+      document.querySelectorAll('.viewBtn').forEach(btn=>btn.addEventListener('click',()=>{ state.calViewByOwner[state.activeOwner]=btn.dataset.view; render(); }));
+      document.getElementById('prevBtn').addEventListener('click',()=>shiftPeriod(-1));
+      document.getElementById('nextBtn').addEventListener('click',()=>shiftPeriod(1));
+      document.getElementById('todayBtn').addEventListener('click',()=>{ state.calDateByOwner[state.activeOwner]=new Date(); render(); });
+      bindFilterPopupButtons();
+    }
     function render(){ const filtered=getFilteredRows(); const dashboard=getRowsForCalendarAndForecast(); syncInputs(); renderActiveChips(); renderSummary(); renderSelectionBanner(); renderKpis(filtered); renderTable(filtered); renderForecastBoards(); renderCalendar(dashboard); save(); }
     bind(); resetForm(); render(); cleanSupabaseUrlHash(); listenAuthChanges(); initSupabaseDashboard();
   </script>
