@@ -294,7 +294,7 @@
         </div>
       </div>
       <div class="top-actions">
-        <span class="auth-chip warn" id="authStatus">Chargement Supabase…</span>
+        <span class="auth-chip warn" id="authStatus">Chargement Supabase…</span> <button class="btn dark" id="pushSupabaseBtn" type="button">Supabase</button>
         
         <button class="btn dark" id="resetViewBtn" type="button">Vue par défaut</button>
         <button class="btn dark" id="topExportCsvBtn" type="button">Export CSV</button>
@@ -734,6 +734,15 @@
       await loadRowsFromSupabase();
       alert('Données test créées dans Supabase.');
     }
+    
+    async function pushAllDataToSupabase(){
+      const payload = state.rows.map(r => ({ ...toDbRow(r), updated_at: new Date().toISOString() }));
+      const { error } = await sb.from(SUPABASE_TABLE).upsert(payload,{ onConflict:'id' });
+      if(error){ alert('Erreur Supabase : ' + error.message); return; }
+      alert('Toutes les données ont été envoyées vers Supabase.');
+      await loadRowsFromSupabase();
+    }
+
     function startSupabaseRealtime() {
       if (realtimeChannel) return;
       realtimeChannel = sb.channel('dashboard-rdv-live')
@@ -761,61 +770,7 @@
       startSupabaseRealtime();
     }
     function getOwnerRows(ownerKey = state.activeOwner){ const ownerLabel = ownerValueFromKey(ownerKey); return state.rows.filter(r => plain(normalizeOwnerValue(r.owner)) === plain(ownerLabel)); }
-    function defaultPriorityStatusRank(row){
-      const s = plain(displayStatus(row));
-      if(s === 'chaud') return 1;
-      if(s === 'a relancer') return 2;
-      if(s === '—' || s === '-' || s === '') return 3;
-      if(s === 'rdv') return 4;
-      if(s === 'sql' || s === 'sql to nurture') return 5;
-      return 3;
-    }
-    function defaultPriorityDate(row){
-      const s = plain(displayStatus(row));
-      if(s === 'sql' || s === 'sql to nurture') return row.qualDate || '';
-      return row.nextStep || '';
-    }
-    function dateSortValueEmptyLast(dateStr){
-      if(!dateStr) return Number.POSITIVE_INFINITY;
-      const d = new Date(dateStr + 'T00:00:00');
-      return isNaN(d) ? Number.POSITIVE_INFINITY : d.getTime();
-    }
-    function defaultPriorityCompare(a,b){
-      const rankA = defaultPriorityStatusRank(a);
-      const rankB = defaultPriorityStatusRank(b);
-      if(rankA !== rankB) return rankA - rankB;
-      const dateA = dateSortValueEmptyLast(defaultPriorityDate(a));
-      const dateB = dateSortValueEmptyLast(defaultPriorityDate(b));
-      if(dateA !== dateB) return dateA - dateB;
-      return String(a.company||'').localeCompare(String(b.company||''), 'fr') || (a.createdAt||0) - (b.createdAt||0);
-    }
-    function getFilteredRows(ownerKey = state.activeOwner){
-      const f = sanitizeFilterObject(state.filtersByOwner[ownerKey]);
-      state.filtersByOwner[ownerKey] = f;
-      return [...getOwnerRows(ownerKey)]
-        .filter(r => f.quarters.includes(String(quarterLabelForRow(r))))
-        .filter(r => isMatch(r.company, f.companyValue, f.companyMode))
-        .filter(r => !r.product || f.products.includes(String(r.product)))
-        .filter(r => isMatch(r.notes, f.notesValue, f.notesMode))
-        .filter(r => !f.qualDate || r.qualDate===f.qualDate)
-        .filter(r => isMatch(r.nextAction, f.nextActionValue, f.nextActionMode))
-        .filter(r => !f.nextStep || r.nextStep===f.nextStep)
-        .filter(r => f.statuses.includes(String(displayStatus(r))))
-        .filter(r => !r.weight || f.weights.includes(String(r.weight)))
-        .sort((a,b)=>{
-          if(f.sortQual){
-            const c = dateSortValueEmptyLast(a.qualDate) - dateSortValueEmptyLast(b.qualDate);
-            if(c) return c;
-            return String(a.company||'').localeCompare(String(b.company||''), 'fr') || (a.createdAt||0) - (b.createdAt||0);
-          }
-          if(f.sortNextStep){
-            const c = dateSortValueEmptyLast(a.nextStep) - dateSortValueEmptyLast(b.nextStep);
-            if(c) return c;
-            return String(a.company||'').localeCompare(String(b.company||''), 'fr') || (a.createdAt||0) - (b.createdAt||0);
-          }
-          return defaultPriorityCompare(a,b);
-        });
-    }
+    function getFilteredRows(ownerKey = state.activeOwner){ const f = sanitizeFilterObject(state.filtersByOwner[ownerKey]); state.filtersByOwner[ownerKey] = f; return [...getOwnerRows(ownerKey)].filter(r => f.quarters.includes(String(quarterLabelForRow(r)))).filter(r => isMatch(r.company, f.companyValue, f.companyMode)).filter(r => !r.product || f.products.includes(String(r.product))).filter(r => isMatch(r.notes, f.notesValue, f.notesMode)).filter(r => !f.qualDate || r.qualDate===f.qualDate).filter(r => isMatch(r.nextAction, f.nextActionValue, f.nextActionMode)).filter(r => !f.nextStep || r.nextStep===f.nextStep).filter(r => f.statuses.includes(String(displayStatus(r)))).filter(r => !r.weight || f.weights.includes(String(r.weight))).sort((a,b)=>{ if(f.sortQual){ const c=dateSortValue(a.qualDate)-dateSortValue(b.qualDate); if(c) return c; } if(f.sortNextStep){ const c=dateSortValue(a.nextStep)-dateSortValue(b.nextStep); if(c) return c; } return String(a.company||'').localeCompare(String(b.company||''), 'fr') || (a.createdAt||0) - (b.createdAt||0); }); }
     function getRowsForCalendarAndForecast(ownerKey = state.activeOwner){ const filtered=getFilteredRows(ownerKey); const selected=filtered.filter(r=>r.selected); return selected.length ? selected : filtered; }
     function renderChoiceList(targetId, values, selected, key, compact=false, weight=false){ const el=document.getElementById(targetId); if(!el) return; const selectedValues = Array.isArray(selected) && selected.length ? selected.map(String) : values.map(String); el.innerHTML=''; values.forEach(v=>{ const label=document.createElement('label'); label.className=compact ? 'check compact' : 'check'; const input=document.createElement('input'); input.type='checkbox'; input.checked=selectedValues.includes(String(v)); input.style.accentColor='var(--orange)'; input.addEventListener('change',()=>{ const filters = currentFilters(); if(!Array.isArray(filters[key])) filters[key]=values.map(String); if(input.checked){ if(!filters[key].includes(String(v))) filters[key].push(String(v)); } else { filters[key]=filters[key].filter(x=>x!==String(v)); if(filters[key].length===0) filters[key]=values.map(String); } save(); render(); }); const span=document.createElement('span'); span.textContent=weight ? niceWeight(v) : v; label.appendChild(input); label.appendChild(span); el.appendChild(label); }); }
     function syncInputs(){ const f=currentFilters(); const map={ fCompanyMode:f.companyMode, fCompanyValue:f.companyValue, fNotesMode:f.notesMode, fNotesValue:f.notesValue, fQualDate:f.qualDate, fNextActionMode:f.nextActionMode, fNextActionValue:f.nextActionValue, fNextStep:f.nextStep, hCompanyMode:f.companyMode, hCompanyValue:f.companyValue, hNotesMode:f.notesMode, hNotesValue:f.notesValue, hQualDate:f.qualDate, hNextActionMode:f.nextActionMode, hNextActionValue:f.nextActionValue, hNextStep:f.nextStep }; Object.entries(map).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.value = val ?? ''; }); ['toggleSortQual','sortChipQual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='Tri croissant : '+(f.sortQual?'On':'Off'); }); ['toggleSortNextStep','sortChipNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='Tri croissant : '+(f.sortNextStep?'On':'Off'); }); renderChoiceList('productFilters', PRODUCTS, f.products, 'products', false, false); renderChoiceList('statusFilters', STATUS_FILTER_OPTIONS, f.statuses, 'statuses', false, false); renderChoiceList('weightFilters', WEIGHTS, f.weights, 'weights', false, true); renderChoiceList('hQuarterFilters', QUARTER_FILTER_OPTIONS, f.quarters, 'quarters', true, false); renderChoiceList('hProductFilters', PRODUCTS, f.products, 'products', true, false); renderChoiceList('hStatusFilters', STATUS_FILTER_OPTIONS, f.statuses, 'statuses', true, false); renderChoiceList('hWeightFilters', WEIGHTS, f.weights, 'weights', true, true); document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + ownerLabelFromKey(state.activeOwner); document.querySelectorAll('.workspace-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.workspace===state.activeOwner)); document.querySelectorAll('.subtab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab===currentSubTab())); document.querySelectorAll('.tab-content').forEach(el => el.classList.toggle('active', el.id===currentSubTab())); }
@@ -1062,6 +1017,7 @@
     function switchSubTab(tabId){ state.activeTabsByOwner[state.activeOwner] = tabId; save(); render(); }
     function bind(){
       document.getElementById('seedDemoBtn')?.addEventListener('click', seedDemoRowsToSupabase);
+      document.getElementById('pushSupabaseBtn')?.addEventListener('click', pushAllDataToSupabase);
 
       document.querySelectorAll('.workspace-btn').forEach(btn=>btn.addEventListener('click',()=>switchWorkspace(btn.dataset.workspace)));
       document.querySelectorAll('.subtab-btn').forEach(btn=>btn.addEventListener('click',()=>switchSubTab(btn.dataset.tab)));
