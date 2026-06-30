@@ -1006,7 +1006,9 @@
 
     function computeQuarterSummary(ownerKey){
       const board = computeBoard(ownerKey);
+      const sqlBonusWeight = board.ownerRows.filter(r => displayStatus(r) === 'SQL' && !r.qualDate).reduce((s,r)=>s+Number(r.weight||0),0);
       const sql = [1,2,3,4].map(q => totalWeightForRows(board.sectionData.sql.grouped[q] || []));
+      if(sql.length){ sql[0] += sqlBonusWeight; }
       const upcoming = [1,2,3,4].map(q => ['rdv','chaud','relance'].reduce((sum,key) => sum + totalWeightForRows(board.sectionData[key].grouped[q] || []), 0));
       const best = sql.map((v, i) => v + upcoming[i]);
       const objectives = (FORECAST_SQL_OBJECTIVES[ownerKey] || [0,0,0,0]).map(Number);
