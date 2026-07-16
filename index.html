@@ -1152,13 +1152,13 @@
       if(ownerKey === 'general') return [...getOwnerRows('jeremie'), ...getOwnerRows('anais')];
       return getOwnerRows(ownerKey);
     }
-    function computeProductStatusSummary(ownerKey){
+    function computeProductSqlDistribution(ownerKey){
       const rows = getRowsForProductStatusSummary(ownerKey).filter(r => {
         const s = displayStatus(r);
-        return s === 'SQL' || s === 'SQL to Nurture';
+        return (s === 'SQL' || s === 'SQL to Nurture') && String(r.product || '').trim();
       });
       const productSet = new Set(PRODUCTS);
-      rows.forEach(r => productSet.add(r.product || '—'));
+      rows.forEach(r => productSet.add(String(r.product || '').trim()));
       const products = [...productSet].filter(Boolean).sort((a,b) => {
         const ia = PRODUCTS.indexOf(a);
         const ib = PRODUCTS.indexOf(b);
@@ -1166,30 +1166,80 @@
         return String(a).localeCompare(String(b), 'fr');
       });
       const summary = products.map(product => {
-        const sqlCompanies = new Set();
-        const nurtureCompanies = new Set();
-        rows.filter(r => (r.product || '—') === product).forEach(r => {
+        const companies = new Set();
+        rows.filter(r => String(r.product || '').trim() === product).forEach(r => {
           const key = norm(r.company) || r.id;
-          if(displayStatus(r) === 'SQL') sqlCompanies.add(key);
-          if(displayStatus(r) === 'SQL to Nurture') nurtureCompanies.add(key);
+          companies.add(key);
         });
-        const totalCompanies = new Set([...sqlCompanies, ...nurtureCompanies]);
-        return { product, sql: sqlCompanies.size, nurture: nurtureCompanies.size, total: totalCompanies.size };
-      });
-      return summary.filter(r => r.sql || r.nurture || PRODUCTS.includes(r.product));
+        return { product, sql: companies.size };
+      }).filter(r => r.sql > 0);
+      const totalSql = summary.reduce((sum,r) => sum + r.sql, 0);
+      return summary.map(r => ({ ...r, pct: totalSql ? (r.sql / totalSql) * 100 : null, totalSql }));
     }
-    function renderProductStatusSummaryTable(title, ownerKey){
-      const rows = computeProductStatusSummary(ownerKey);
-      const totalSql = rows.reduce((sum,r) => sum + r.sql, 0);
-      const totalNurture = rows.reduce((sum,r) => sum + r.nurture, 0);
-      const totalCompanies = rows.reduce((sum,r) => sum + r.total, 0);
-      const bodyRows = rows.map(r => `
+    function productDistributionRowMap(rows){
+      return rows.reduce((acc, r) => { acc[r.product] = r; return acc; }, {});
+    }
+    function renderProductStatusSummaryTable(title, ownerKey, options = {}){
+      const mode = options.mode || 'single';
+      const primaryRows = computeProductSqlDistribution(ownerKey);
+      const primaryMap = productDistributionRowMap(primaryRows);
+      const teamRows = computeProductSqlDistribution('general');
+      const teamMap = productDistributionRowMap(teamRows);
+      const productSet = new Set([...primaryRows.map(r => r.product), ...((mode === 'withTeamPercent') ? teamRows.map(r => r.product) : [])]);
+      const products = [...productSet].sort((a,b) => {
+        const ia = PRODUCTS.indexOf(a);
+        const ib = PRODUCTS.indexOf(b);
+        if(ia !== -1 || ib !== -1) return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+        return String(a).localeCompare(String(b), 'fr');
+      });
+      const totalPrimary = primaryRows.reduce((sum,r) => sum + r.sql, 0);
+      const totalTeam = teamRows.reduce((sum,r) => sum + r.sql, 0);
+      const bodyRows = products.map(product => {
+        const primary = primaryMap[product] || { product, sql:0, pct: totalPrimary ? 0 : null };
+        const team = teamMap[product] || { product, sql:0, pct: totalTeam ? 0 : null };
+        if(mode === 'withTeamPercent'){
+          return `
         <tr>
-          <td>${esc(r.product)}</td>
-          <td class="num">${esc(String(r.sql))}</td>
-          <td class="num">${esc(String(r.nurture))}</td>
-          <td class="num">${esc(String(r.total))}</td>
-        </tr>`).join('');
+          <td>${esc(product)}</td>
+          <td class="num">${esc(String(primary.sql))}</td>
+          <td class="num">${esc(fmtForecastPercent(primary.pct))}</td>
+          <td class="num">${esc(fmtForecastPercent(team.pct))}</td>
+        </tr>`;
+        }
+        return `
+        <tr>
+          <td>${esc(product)}</td>
+          <td class="num">${esc(String(primary.sql))}</td>
+          <td class="num">${esc(fmtForecastPercent(primary.pct))}</td>
+        </tr>`;
+      }).join('');
+      if(mode === 'withTeamPercent'){
+        return `
+        <div class="forecast-summary-card">
+          <div class="forecast-summary-head">${esc(title)}</div>
+          <div class="forecast-summary-wrap">
+            <table class="forecast-summary-table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>SQL</th>
+                  <th>% Jérémie</th>
+                  <th>% équipe (Jérémie + Anaïs)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${bodyRows || '<tr><td colspan="4">Aucune entreprise SQL avec produit.</td></tr>'}
+                <tr>
+                  <td>Total</td>
+                  <td class="num">${esc(String(totalPrimary))}</td>
+                  <td class="num">${esc(fmtForecastPercent(totalPrimary ? 100 : null))}</td>
+                  <td class="num">${esc(fmtForecastPercent(totalTeam ? 100 : null))}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+      }
       return `
         <div class="forecast-summary-card">
           <div class="forecast-summary-head">${esc(title)}</div>
@@ -1199,17 +1249,15 @@
                 <tr>
                   <th>Produit</th>
                   <th>SQL</th>
-                  <th>SQL to Nurture</th>
-                  <th>Total entreprises</th>
+                  <th>% répartition</th>
                 </tr>
               </thead>
               <tbody>
-                ${bodyRows || '<tr><td colspan="4">Aucune entreprise SQL ou SQL to Nurture.</td></tr>'}
+                ${bodyRows || '<tr><td colspan="3">Aucune entreprise SQL avec produit.</td></tr>'}
                 <tr>
                   <td>Total</td>
-                  <td class="num">${esc(String(totalSql))}</td>
-                  <td class="num">${esc(String(totalNurture))}</td>
-                  <td class="num">${esc(String(totalCompanies))}</td>
+                  <td class="num">${esc(String(totalPrimary))}</td>
+                  <td class="num">${esc(fmtForecastPercent(totalPrimary ? 100 : null))}</td>
                 </tr>
               </tbody>
             </table>
@@ -1219,13 +1267,12 @@
     function renderForecastSummaryZone(){
       const current = computeQuarterSummary(state.activeOwner);
       if(state.activeOwner === 'anais'){
-        return `<div class="forecast-summary-zone forecast-summary-grid"><div>${renderQuarterSummaryTable('Anaïs', current)}</div><div>${renderProductStatusSummaryTable('Répartition SQL / SQL to Nurture par produit — Anaïs', 'anais')}</div></div>`;
+        return `<div class="forecast-summary-zone forecast-summary-grid"><div>${renderQuarterSummaryTable('Anaïs', current)}</div><div>${renderProductStatusSummaryTable('Répartition SQL par produit — Anaïs', 'anais')}</div></div>`;
       }
       const anaisSummary = computeQuarterSummary('anais');
       const generalSummary = mergeQuarterSummaries(current, anaisSummary);
-      return `<div class="forecast-summary-zone forecast-summary-grid"><div>${renderQuarterSummaryTable('Général', generalSummary)}${renderProductStatusSummaryTable('Répartition SQL / SQL to Nurture par produit — Général', 'general')}</div><div>${renderQuarterSummaryTable('Jérémie', current)}${renderQuarterSummaryTable('Anaïs', anaisSummary)}</div></div>`;
+      return `<div class="forecast-summary-zone forecast-summary-grid"><div>${renderQuarterSummaryTable('Général', generalSummary)}${renderProductStatusSummaryTable('Répartition SQL par produit — Jérémie / équipe', 'jeremie', { mode:'withTeamPercent' })}</div><div>${renderQuarterSummaryTable('Jérémie', current)}${renderQuarterSummaryTable('Anaïs', anaisSummary)}</div></div>`;
     }
-
     function renderForecastBoards(){ const host=document.getElementById('forecastBoardJeremie'); if(host) host.innerHTML=renderBoardTable(state.activeOwner); const summaryHost=document.getElementById('forecastSummaryZone'); if(summaryHost) summaryHost.innerHTML=renderForecastSummaryZone(); bindForecastBoardInputs(); document.getElementById('forecastTitle').textContent = 'Forecast — ' + ownerLabelFromKey(state.activeOwner); }
     function getCalendarDate(r){ return r.nextStep || r.qualDate || ''; }
     function renderDayCell(dateObj,inMonth,events,today){ const limited=events.slice(0,3); const more=events.length-limited.length; return `<div class="day ${inMonth?'':'out'} ${today?'today':''}"><div class="day-num">${dateObj.getDate()}</div>${limited.map(r=>`<div class="ev ${eventClass(displayStatus(r))}" title="${esc(r.company||'')} • ${esc(r.nextAction||'')}">${esc(r.company||'Action')} — ${esc((r.nextAction||'').slice(0,12))}</div>`).join('')}${more>0 ? `<div class="subtle" style="font-size:.56rem;">+ ${more}</div>` : ''}</div>`; }
