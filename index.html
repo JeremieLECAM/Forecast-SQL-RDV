@@ -97,10 +97,6 @@
     .filter-btn.active{background:#000;color:#fff;border-color:#000}
     .filter-pop{position:absolute;top:24px;right:0;width:224px;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 12px 24px rgba(0,0,0,.14);padding:7px;display:none;z-index:20}
     .filter-pop.show{display:block}
-    #pop-quarter{
-      width:135px;
-    }
-
     .filter-pop h5{margin:0 0 5px;font-size:.68rem;font-weight:900}
     .stack-mini{display:grid;gap:5px}
     .tiny-row{display:grid;grid-template-columns:74px 1fr;gap:5px}
@@ -252,7 +248,7 @@
     .forecast-summary-card{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:none}
     .forecast-summary-head{padding:6px 8px;border-bottom:1px solid var(--line);font-size:.72rem;font-weight:900;background:#fcfcfc}
     .forecast-summary-wrap{overflow:auto}
-    .forecast-summary-table{width:100%;min-width:540px;border-collapse:collapse}
+    .forecast-summary-table{width:100%;min-width:680px;border-collapse:collapse}
     .forecast-summary-table th,.forecast-summary-table td{border:1px solid #e7e7e7;padding:5px 6px;font-size:.66rem;line-height:1.15;text-align:left;background:#fff}
     .forecast-summary-table thead th{background:#f4f4f4;font-weight:900}
     .forecast-summary-table tbody tr:last-child td{background:#fff7f0;font-weight:900}
@@ -290,10 +286,7 @@
   <div class="app" id="appRoot">
     <header class="hero">
       <div class="hero-left">
-<div class="hero-left">
-  <img class="hero-logo"
-       src="Logo.png"
-       alt="SQL Logo">
+        <img class="hero-logo" src="data:image/png;base64,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" alt="Speexx logo">
         <div>
           <h1>Dashboard de suivi SQL</h1>
           <div class="sub" id="workspaceSubtitle">Vue active : Jérémie</div>
@@ -387,7 +380,7 @@
                   <tr>
                     <th style="min-width:50px;"><div class="th-wrap"><div class="th-label">Choix</div><input id="checkAllVisible" class="row-check" type="checkbox" title="Cocher toutes les lignes visibles"></div></th>
                     <th style="min-width:68px;"><div class="th-wrap"><div class="th-label">Q</div><button class="filter-btn" data-pop="pop-quarter" type="button">⏷</button><div class="filter-pop" id="pop-quarter"><h5>Filtre • Quarter</h5><div class="stack-mini" id="hQuarterFilters"></div><div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;"><button class="btn small soft" type="button" id="hQuarterAll">Tout</button><button class="btn small soft" type="button" id="hQuarterReset">Reset</button></div></div></div></th>
-                    <th><div class="th-wrap"><div class="th-label">Entreprise</div><button class="filter-btn" data-pop="pop-company" type="button">⏷</button><div class="filter-pop" id="pop-company"><h5>Filtre • Entreprise</h5><div class="stack-mini"><div class="tiny-row"><select id="hCompanyMode" class="tiny"><option value="contains">contains</option><option value="equals">equals</option></select><input id="hCompanyValue" class="tiny" type="text" placeholder="Filtrer"></div><button class="btn small soft" id="sortCompanyBtn" type="button">Tri alphabétique : Off</button><button class="btn small soft" type="button" data-close-pop>Fermer</button></div></div></div></th>
+                    <th><div class="th-wrap"><div class="th-label">Entreprise</div><button class="filter-btn" data-pop="pop-company" type="button">⏷</button><div class="filter-pop" id="pop-company"><h5>Filtre • Entreprise</h5><div class="stack-mini"><div class="tiny-row"><select id="hCompanyMode" class="tiny"><option value="contains">contains</option><option value="equals">equals</option></select><input id="hCompanyValue" class="tiny" type="text" placeholder="Filtrer"></div><button class="btn small soft" type="button" data-close-pop>Fermer</button></div></div></div></th>
                     <th><div class="th-wrap"><div class="th-label">Produit</div><button class="filter-btn" data-pop="pop-product" type="button">⏷</button><div class="filter-pop" id="pop-product"><h5>Filtre • Produit</h5><div class="stack-mini" id="hProductFilters"></div><div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;"><button class="btn small soft" type="button" id="hProductAll">Tout</button><button class="btn small soft" type="button" id="hProductReset">Reset</button></div></div></div></th>
                     <th><div class="th-wrap"><div class="th-label">Notes</div><button class="filter-btn" data-pop="pop-notes" type="button">⏷</button><div class="filter-pop" id="pop-notes"><h5>Filtre • Notes</h5><div class="stack-mini"><div class="tiny-row"><select id="hNotesMode" class="tiny"><option value="contains">contains</option></select><input id="hNotesValue" class="tiny" type="text" placeholder="Filtrer"></div><button class="btn small soft" type="button" data-close-pop>Fermer</button></div></div></div></th>
                     <th><div class="th-wrap"><div class="th-label">Date qualif.</div><button class="filter-btn" data-pop="pop-qual" type="button">⏷</button><div class="filter-pop" id="pop-qual"><h5>Filtre • Date qualif.</h5><div class="stack-mini"><div><label for="hQualDate">Equals</label><input id="hQualDate" class="tiny" type="date"></div><button class="btn small soft" type="button" id="sortChipQual">Tri chronologique : Off</button><button class="btn small soft" type="button" data-close-pop>Fermer</button></div></div></div></th>
@@ -560,11 +553,9 @@
     function ownerLabelFromKey(key){ const ws = WORKSPACES.find(x => x.key===key); return ws ? ws.label : 'Jérémie'; }
     function ownerValueFromKey(key){ const ws = WORKSPACES.find(x => x.key===key); return ws ? ws.owner : 'Jérémie'; }
     function ownerKeyFromValue(owner){ return plain(owner)==='anais' ? 'anais' : 'jeremie'; }
-    function defaultFilters(){ return { companyMode:'contains', companyValue:'', companySort:'', quarters:[...QUARTER_FILTER_OPTIONS], products:[...PRODUCTS], notesMode:'contains', notesValue:'', qualDate:'', sortQual:'', nextActionMode:'contains', nextActionValue:'', nextStep:'', sortNextStep:'', statuses:[...STATUS_FILTER_OPTIONS], weights:[...WEIGHTS] }; }
+    function defaultFilters(){ return { companyMode:'contains', companyValue:'', quarters:[...QUARTER_FILTER_OPTIONS], products:[...PRODUCTS], notesMode:'contains', notesValue:'', qualDate:'', sortQual:'', nextActionMode:'contains', nextActionValue:'', nextStep:'', sortNextStep:'', statuses:[...STATUS_FILTER_OPTIONS], weights:[...WEIGHTS] }; }
     function normalizeSortDir(value){ return value===true ? 'asc' : (value==='asc' || value==='desc' ? value : ''); }
     function nextSortDir(value){ const v=normalizeSortDir(value); return v==='asc' ? 'desc' : (v==='desc' ? '' : 'asc'); }
-    function nextAlphaSort(v){ return v==='asc'?'desc':(v==='desc'?'':'asc'); }
-    function alphaSortLabel(v){ return v==='asc'?'A→Z':(v==='desc'?'Z→A':'Off'); }
     function sortDirLabel(value){ const v=normalizeSortDir(value); return v==='asc' ? 'Croissant' : (v==='desc' ? 'Décroissant' : 'Off'); }
     function cycleSortFilter(key){ const f=currentFilters(); f[key]=nextSortDir(f[key]); save(); render(); }
     function sanitizeFilterObject(raw){ const base=defaultFilters(); const merged={...base, ...(raw||{})}; merged.quarters = Array.isArray(raw?.quarters) && raw.quarters.length ? raw.quarters.map(String) : [...QUARTER_FILTER_OPTIONS]; merged.products = Array.isArray(raw?.products) && raw.products.length ? raw.products.map(String) : [...PRODUCTS]; merged.weights = Array.isArray(raw?.weights) && raw.weights.length ? raw.weights.map(String) : [...WEIGHTS]; merged.statuses = Array.isArray(raw?.statuses) && raw.statuses.length ? raw.statuses.map(String) : [...STATUS_FILTER_OPTIONS]; merged.sortQual = normalizeSortDir(raw?.sortQual ?? merged.sortQual); merged.sortNextStep = normalizeSortDir(raw?.sortNextStep ?? merged.sortNextStep); return merged; }
@@ -815,11 +806,10 @@
       if(da!==db) return da-db;
       return String(a.company||'').localeCompare(String(b.company||''), 'fr') || (a.createdAt||0) - (b.createdAt||0);
     }
-    function getFilteredRows(ownerKey = state.activeOwner){ const f = sanitizeFilterObject(state.filtersByOwner[ownerKey]); state.filtersByOwner[ownerKey] = f; return [...getOwnerRows(ownerKey)].filter(r => f.quarters.includes(String(quarterLabelForRow(r)))).filter(r => isMatch(r.company, f.companyValue, f.companyMode)).filter(r => !r.product || f.products.includes(String(r.product))).filter(r => isMatch(r.notes, f.notesValue, f.notesMode)).filter(r => !f.qualDate || r.qualDate===f.qualDate).filter(r => isMatch(r.nextAction, f.nextActionValue, f.nextActionMode)).filter(r => !f.nextStep || r.nextStep===f.nextStep).filter(r => f.statuses.includes(String(displayStatus(r)))).filter(r => !r.weight || f.weights.includes(String(r.weight))).sort((a,b)=>{ if(f.companySort){ const c=String(a.company||'').localeCompare(String(b.company||''),'fr'); if(c) return f.companySort==='desc'?-c:c; } if(f.sortQual){ const c=dateSortValueLast(a.qualDate)-dateSortValueLast(b.qualDate); if(c) return f.sortQual==='desc' ? -c : c; } if(f.sortNextStep){ const c=dateSortValueLast(a.nextStep)-dateSortValueLast(b.nextStep); if(c) return f.sortNextStep==='desc' ? -c : c; } return defaultPrioritySort(a,b); }); }
+    function getFilteredRows(ownerKey = state.activeOwner){ const f = sanitizeFilterObject(state.filtersByOwner[ownerKey]); state.filtersByOwner[ownerKey] = f; return [...getOwnerRows(ownerKey)].filter(r => f.quarters.includes(String(quarterLabelForRow(r)))).filter(r => isMatch(r.company, f.companyValue, f.companyMode)).filter(r => !r.product || f.products.includes(String(r.product))).filter(r => isMatch(r.notes, f.notesValue, f.notesMode)).filter(r => !f.qualDate || r.qualDate===f.qualDate).filter(r => isMatch(r.nextAction, f.nextActionValue, f.nextActionMode)).filter(r => !f.nextStep || r.nextStep===f.nextStep).filter(r => f.statuses.includes(String(displayStatus(r)))).filter(r => !r.weight || f.weights.includes(String(r.weight))).sort((a,b)=>{ if(f.sortQual){ const c=dateSortValueLast(a.qualDate)-dateSortValueLast(b.qualDate); if(c) return f.sortQual==='desc' ? -c : c; } if(f.sortNextStep){ const c=dateSortValueLast(a.nextStep)-dateSortValueLast(b.nextStep); if(c) return f.sortNextStep==='desc' ? -c : c; } return defaultPrioritySort(a,b); }); }
     function getRowsForCalendarAndForecast(ownerKey = state.activeOwner){ const filtered=getFilteredRows(ownerKey); const selected=filtered.filter(r=>r.selected); return selected.length ? selected : filtered; }
     function renderChoiceList(targetId, values, selected, key, compact=false, weight=false){ const el=document.getElementById(targetId); if(!el) return; const selectedValues = Array.isArray(selected) && selected.length ? selected.map(String) : values.map(String); el.innerHTML=''; values.forEach(v=>{ const label=document.createElement('label'); label.className=compact ? 'check compact' : 'check'; const input=document.createElement('input'); input.type='checkbox'; input.checked=selectedValues.includes(String(v)); input.style.accentColor='var(--orange)'; input.addEventListener('change',()=>{ const filters = currentFilters(); if(!Array.isArray(filters[key])) filters[key]=values.map(String); if(input.checked){ if(!filters[key].includes(String(v))) filters[key].push(String(v)); } else { filters[key]=filters[key].filter(x=>x!==String(v)); if(filters[key].length===0) filters[key]=values.map(String); } save(); render(); }); const span=document.createElement('span'); span.textContent=weight ? niceWeight(v) : v; label.appendChild(input); label.appendChild(span); el.appendChild(label); }); }
-    function syncInputs(){ const f=currentFilters(); const map={ fCompanyMode:f.companyMode, fCompanyValue:f.companyValue, fNotesMode:f.notesMode, fNotesValue:f.notesValue, fQualDate:f.qualDate, fNextActionMode:f.nextActionMode, fNextActionValue:f.nextActionValue, fNextStep:f.nextStep, hCompanyMode:f.companyMode, hCompanyValue:f.companyValue, hNotesMode:f.notesMode, hNotesValue:f.notesValue, hQualDate:f.qualDate, hNextActionMode:f.nextActionMode, hNextActionValue:f.nextActionValue, hNextStep:f.nextStep }; Object.entries(map).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.value = val ?? ''; }); ['toggleSortQual','sortChipQual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='Tri chronologique : '+sortDirLabel(f.sortQual); }); ['toggleSortNextStep','sortChipNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='Tri chronologique : '+sortDirLabel(f.sortNextStep); }); renderChoiceList('productFilters', PRODUCTS, f.products, 'products', false, false); renderChoiceList('statusFilters', STATUS_FILTER_OPTIONS, f.statuses, 'statuses', false, false); renderChoiceList('weightFilters', WEIGHTS, f.weights, 'weights', false, true); renderChoiceList('hQuarterFilters', QUARTER_FILTER_OPTIONS, f.quarters, 'quarters', true, false); renderChoiceList('hProductFilters', PRODUCTS, f.products, 'products', true, false); renderChoiceList('hStatusFilters', STATUS_FILTER_OPTIONS, f.statuses, 'statuses', true, false); renderChoiceList('hWeightFilters', WEIGHTS, f.weights, 'weights', true, true); const sortCompanyBtn=document.getElementById('sortCompanyBtn'); if(sortCompanyBtn) sortCompanyBtn.textContent='Tri alphabétique : '+alphaSortLabel(f.companySort); 
-document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + ownerLabelFromKey(state.activeOwner); document.querySelectorAll('.workspace-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.workspace===state.activeOwner)); document.querySelectorAll('.subtab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab===currentSubTab())); document.querySelectorAll('.tab-content').forEach(el => el.classList.toggle('active', el.id===currentSubTab())); }
+    function syncInputs(){ const f=currentFilters(); const map={ fCompanyMode:f.companyMode, fCompanyValue:f.companyValue, fNotesMode:f.notesMode, fNotesValue:f.notesValue, fQualDate:f.qualDate, fNextActionMode:f.nextActionMode, fNextActionValue:f.nextActionValue, fNextStep:f.nextStep, hCompanyMode:f.companyMode, hCompanyValue:f.companyValue, hNotesMode:f.notesMode, hNotesValue:f.notesValue, hQualDate:f.qualDate, hNextActionMode:f.nextActionMode, hNextActionValue:f.nextActionValue, hNextStep:f.nextStep }; Object.entries(map).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.value = val ?? ''; }); ['toggleSortQual','sortChipQual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='Tri chronologique : '+sortDirLabel(f.sortQual); }); ['toggleSortNextStep','sortChipNextStep'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='Tri chronologique : '+sortDirLabel(f.sortNextStep); }); renderChoiceList('productFilters', PRODUCTS, f.products, 'products', false, false); renderChoiceList('statusFilters', STATUS_FILTER_OPTIONS, f.statuses, 'statuses', false, false); renderChoiceList('weightFilters', WEIGHTS, f.weights, 'weights', false, true); renderChoiceList('hQuarterFilters', QUARTER_FILTER_OPTIONS, f.quarters, 'quarters', true, false); renderChoiceList('hProductFilters', PRODUCTS, f.products, 'products', true, false); renderChoiceList('hStatusFilters', STATUS_FILTER_OPTIONS, f.statuses, 'statuses', true, false); renderChoiceList('hWeightFilters', WEIGHTS, f.weights, 'weights', true, true); document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + ownerLabelFromKey(state.activeOwner); document.querySelectorAll('.workspace-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.workspace===state.activeOwner)); document.querySelectorAll('.subtab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab===currentSubTab())); document.querySelectorAll('.tab-content').forEach(el => el.classList.toggle('active', el.id===currentSubTab())); }
     function renderKpis(rows){ const totalWeight=rows.reduce((s,r)=>s+Number(r.weight||0),0); const uniqueCompanies=new Set(rows.map(r=>norm(r.company)).filter(Boolean)).size; const rdv=rows.filter(r=>plain(displayStatus(r))==='rdv').length; const chaud=rows.filter(r=>plain(displayStatus(r))==='chaud').length; const relance=rows.filter(r=>plain(displayStatus(r))==='a relancer').length; const cards=[ {label:'Lignes visibles', value:rows.length, mini:`${uniqueCompanies} comptes distincts`}, {label:'Pondération visible', value:niceWeight(totalWeight.toFixed(2).replace(/\.00$/,'')), mini:'Somme pondérée'}, {label:'RDV', value:rdv, mini:'Lignes en rendez-vous'}, {label:'Chaud', value:chaud, mini:'Lignes chaudes'}, {label:'À relancer', value:relance, mini:'Relances à piloter'} ]; document.getElementById('kpis').innerHTML=cards.map(c=>`<div class="kpi"><div class="label">${esc(c.label)}</div><div class="value">${esc(String(c.value))}</div><div class="mini">${esc(c.mini)}</div></div>`).join(''); }
     function renderSummary(){ const tableRows=getFilteredRows(); const dashRows=getRowsForCalendarAndForecast(); const totalWeight=dashRows.reduce((s,r)=>s+Number(r.weight||0),0); const selectedCount=tableRows.filter(r=>r.selected).length; const items=[ ['Workspace', ownerLabelFromKey(state.activeOwner)], ['Tableau visible', String(tableRows.length)], ['Lignes cochées', String(selectedCount)], ['Base calendrier/forecast', String(dashRows.length)], ['Pondération active', niceWeight(totalWeight.toFixed(2).replace(/\.00$/,''))], ['Avec next action', String(dashRows.filter(r=>r.nextAction).length)] ]; document.getElementById('summaryList').innerHTML=items.map(([k,v])=>`<div class="summary-item"><span class="summary-key">${esc(k)}</span><strong>${esc(v)}</strong></div>`).join(''); }
     function renderActiveChips(){ const f=sanitizeFilterObject(currentFilters()); state.filtersByOwner[state.activeOwner] = f; const chips=['Vue: ' + ownerLabelFromKey(state.activeOwner)]; if(f.quarters.length!==QUARTER_FILTER_OPTIONS.length) chips.push('Q: '+f.quarters.join(', ')); if(f.companyValue) chips.push('Entreprise: '+f.companyValue); if(f.products.length!==PRODUCTS.length) chips.push('Produit: '+f.products.join(', ')); if(f.notesValue) chips.push('Notes: '+f.notesValue); if(f.qualDate) chips.push('Date qualif.: '+formatDate(f.qualDate)); if(f.sortQual) chips.push('Tri qualif.: '+sortDirLabel(f.sortQual)); if(f.nextActionValue) chips.push('Next action: '+f.nextActionValue); if(f.nextStep) chips.push('Next step: '+formatDate(f.nextStep)); if(f.sortNextStep) chips.push('Tri next step: '+sortDirLabel(f.sortNextStep)); if(f.statuses.length!==STATUS_FILTER_OPTIONS.length) chips.push('Statut: '+f.statuses.join(', ')); if(f.weights.length!==WEIGHTS.length) chips.push('Pondération: '+f.weights.map(niceWeight).join(', ')); const selectedCount=getFilteredRows().filter(r=>r.selected).length; if(selectedCount) chips.push('Cochées: '+selectedCount); const el=document.getElementById('activeFilterChips'); el.innerHTML=chips.map(c=>`<span class="chip">${esc(c)}</span>`).join(''); }
@@ -1101,7 +1091,8 @@ document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + own
         const sqlBaseValue = Number(summary.sqlBase?.[idx] || 0);
         const sqlBonusValue = Number(summary.sqlBonus?.[idx] || 0);
         const sqlTotalValue = sqlBaseValue + sqlBonusValue;
-        const attainment = objectif ? ((sqlTotalValue / objectif) * 100) : null;
+        const attainmentWithoutBonus = objectif ? ((sqlBaseValue / objectif) * 100) : null;
+        const attainmentWithBonus = objectif ? ((sqlTotalValue / objectif) * 100) : null;
         return `
         <tr>
           <td>Q${quarter}</td>
@@ -1109,7 +1100,8 @@ document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + own
           <td class="num">${esc(fmtForecastWeight(sqlBonusValue))}</td>
           <td class="num">${esc(fmtForecastWeight(sqlTotalValue))}</td>
           <td class="num">${esc(fmtForecastWeight(objectif))}</td>
-          <td class="num">${esc(fmtForecastPercent(attainment))}</td>
+          <td class="num">${esc(fmtForecastPercent(attainmentWithoutBonus))}</td>
+          <td class="num">${esc(fmtForecastPercent(attainmentWithBonus))}</td>
           <td class="num">${esc(fmtForecastWeight(summary.upcoming[idx]))}</td>
           <td class="num">${esc(fmtForecastWeight(summary.best[idx]))}</td>
         </tr>`;
@@ -1117,7 +1109,8 @@ document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + own
       const totalSqlBase = Number(summary.totalSqlBase || 0);
       const totalSqlBonus = Number(summary.totalSqlBonus || 0);
       const totalSql = Number(summary.totalSql || 0);
-      const totalAttainment = summary.totalObjective ? ((totalSql / Number(summary.totalObjective || 0)) * 100) : null;
+      const totalAttainmentWithoutBonus = summary.totalObjective ? ((totalSqlBase / Number(summary.totalObjective || 0)) * 100) : null;
+      const totalAttainmentWithBonus = summary.totalObjective ? ((totalSql / Number(summary.totalObjective || 0)) * 100) : null;
       return `
         <div class="forecast-summary-card">
           <div class="forecast-summary-head">${esc(title)}</div>
@@ -1130,7 +1123,8 @@ document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + own
                   <th>SQL Bonus</th>
                   <th>SQL total</th>
                   <th>Objectif SQL</th>
-                  <th>% atteinte</th>
+                  <th>% atteinte hors Bonus</th>
+                  <th>% atteinte avec Bonus</th>
                   <th>A venir</th>
                   <th>Best scénario</th>
                 </tr>
@@ -1143,9 +1137,79 @@ document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + own
                   <td class="num">${esc(fmtForecastWeight(totalSqlBonus))}</td>
                   <td class="num">${esc(fmtForecastWeight(totalSql))}</td>
                   <td class="num">${esc(fmtForecastWeight(summary.totalObjective))}</td>
-                  <td class="num">${esc(fmtForecastPercent(totalAttainment))}</td>
+                  <td class="num">${esc(fmtForecastPercent(totalAttainmentWithoutBonus))}</td>
+                  <td class="num">${esc(fmtForecastPercent(totalAttainmentWithBonus))}</td>
                   <td class="num">${esc(fmtForecastWeight(summary.totalUpcoming))}</td>
                   <td class="num">${esc(fmtForecastWeight(summary.totalBest))}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    function getRowsForProductStatusSummary(ownerKey){
+      if(ownerKey === 'general') return [...getOwnerRows('jeremie'), ...getOwnerRows('anais')];
+      return getOwnerRows(ownerKey);
+    }
+    function computeProductStatusSummary(ownerKey){
+      const rows = getRowsForProductStatusSummary(ownerKey).filter(r => {
+        const s = displayStatus(r);
+        return s === 'SQL' || s === 'SQL to Nurture';
+      });
+      const productSet = new Set(PRODUCTS);
+      rows.forEach(r => productSet.add(r.product || '—'));
+      const products = [...productSet].filter(Boolean).sort((a,b) => {
+        const ia = PRODUCTS.indexOf(a);
+        const ib = PRODUCTS.indexOf(b);
+        if(ia !== -1 || ib !== -1) return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+        return String(a).localeCompare(String(b), 'fr');
+      });
+      const summary = products.map(product => {
+        const sqlCompanies = new Set();
+        const nurtureCompanies = new Set();
+        rows.filter(r => (r.product || '—') === product).forEach(r => {
+          const key = norm(r.company) || r.id;
+          if(displayStatus(r) === 'SQL') sqlCompanies.add(key);
+          if(displayStatus(r) === 'SQL to Nurture') nurtureCompanies.add(key);
+        });
+        const totalCompanies = new Set([...sqlCompanies, ...nurtureCompanies]);
+        return { product, sql: sqlCompanies.size, nurture: nurtureCompanies.size, total: totalCompanies.size };
+      });
+      return summary.filter(r => r.sql || r.nurture || PRODUCTS.includes(r.product));
+    }
+    function renderProductStatusSummaryTable(title, ownerKey){
+      const rows = computeProductStatusSummary(ownerKey);
+      const totalSql = rows.reduce((sum,r) => sum + r.sql, 0);
+      const totalNurture = rows.reduce((sum,r) => sum + r.nurture, 0);
+      const totalCompanies = rows.reduce((sum,r) => sum + r.total, 0);
+      const bodyRows = rows.map(r => `
+        <tr>
+          <td>${esc(r.product)}</td>
+          <td class="num">${esc(String(r.sql))}</td>
+          <td class="num">${esc(String(r.nurture))}</td>
+          <td class="num">${esc(String(r.total))}</td>
+        </tr>`).join('');
+      return `
+        <div class="forecast-summary-card">
+          <div class="forecast-summary-head">${esc(title)}</div>
+          <div class="forecast-summary-wrap">
+            <table class="forecast-summary-table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>SQL</th>
+                  <th>SQL to Nurture</th>
+                  <th>Total entreprises</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${bodyRows || '<tr><td colspan="4">Aucune entreprise SQL ou SQL to Nurture.</td></tr>'}
+                <tr>
+                  <td>Total</td>
+                  <td class="num">${esc(String(totalSql))}</td>
+                  <td class="num">${esc(String(totalNurture))}</td>
+                  <td class="num">${esc(String(totalCompanies))}</td>
                 </tr>
               </tbody>
             </table>
@@ -1155,11 +1219,11 @@ document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + own
     function renderForecastSummaryZone(){
       const current = computeQuarterSummary(state.activeOwner);
       if(state.activeOwner === 'anais'){
-        return `<div class="forecast-summary-zone">${renderQuarterSummaryTable('Anaïs', current)}</div>`;
+        return `<div class="forecast-summary-zone forecast-summary-grid"><div>${renderQuarterSummaryTable('Anaïs', current)}</div><div>${renderProductStatusSummaryTable('Répartition SQL / SQL to Nurture par produit — Anaïs', 'anais')}</div></div>`;
       }
       const anaisSummary = computeQuarterSummary('anais');
       const generalSummary = mergeQuarterSummaries(current, anaisSummary);
-      return `<div class="forecast-summary-zone forecast-summary-grid"><div>${renderQuarterSummaryTable('Général', generalSummary)}</div><div>${renderQuarterSummaryTable('Jérémie', current)}${renderQuarterSummaryTable('Anaïs', anaisSummary)}</div></div>`;
+      return `<div class="forecast-summary-zone forecast-summary-grid"><div>${renderQuarterSummaryTable('Général', generalSummary)}${renderProductStatusSummaryTable('Répartition SQL / SQL to Nurture par produit — Général', 'general')}</div><div>${renderQuarterSummaryTable('Jérémie', current)}${renderQuarterSummaryTable('Anaïs', anaisSummary)}</div></div>`;
     }
 
     function renderForecastBoards(){ const host=document.getElementById('forecastBoardJeremie'); if(host) host.innerHTML=renderBoardTable(state.activeOwner); const summaryHost=document.getElementById('forecastSummaryZone'); if(summaryHost) summaryHost.innerHTML=renderForecastSummaryZone(); bindForecastBoardInputs(); document.getElementById('forecastTitle').textContent = 'Forecast — ' + ownerLabelFromKey(state.activeOwner); }
@@ -1207,7 +1271,6 @@ document.getElementById('workspaceSubtitle').textContent = 'Vue active : ' + own
         }
       });
 
-      document.getElementById('sortCompanyBtn')?.addEventListener('click',()=>{ const f=currentFilters(); f.companySort=nextAlphaSort(f.companySort); save(); render(); });
       document.getElementById('toggleSortQual').addEventListener('click',()=>cycleSortFilter('sortQual'));
       document.getElementById('toggleSortNextStep').addEventListener('click',()=>cycleSortFilter('sortNextStep'));
       document.getElementById('sortChipQual').addEventListener('click',()=>cycleSortFilter('sortQual'));
