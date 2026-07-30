@@ -277,6 +277,19 @@
     .auth-chip.live::before{content:"";width:7px;height:7px;border-radius:999px;background:#2e7d32;display:inline-block}
     .auth-chip.warn::before{content:"";width:7px;height:7px;border-radius:999px;background:#f39c12;display:inline-block}
 
+
+    /* Onglet D - Pistes à flairer */
+    .pistes-intro{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+    .pistes-intro .mini-note{margin:0;flex:1;min-width:260px}
+    .pistes-table textarea{min-height:38px;resize:vertical;line-height:1.1;font-size:.66rem}
+    .pistes-table .input,.pistes-table select,.pistes-table textarea{font-size:.66rem;padding:4px 5px;border-radius:6px}
+    .pistes-table .pistes-company{font-weight:900}
+    .pistes-table .pistes-sub{font-size:.58rem;color:var(--muted);margin-top:2px}
+    .pistes-filter-pop{position:absolute;top:24px;right:0;width:224px;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 12px 24px rgba(0,0,0,.14);padding:7px;display:none;z-index:25}
+    .pistes-filter-pop.show{display:block}
+    .pistes-filter-pop h5{margin:0 0 5px;font-size:.68rem;font-weight:900}
+    .pistes-empty{padding:18px;text-align:center;color:#666;background:#fff}
+
   </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -312,6 +325,7 @@
         <button class="tab-btn subtab-btn active" data-tab="tabTableau" type="button">A. Tableau</button>
         <button class="tab-btn subtab-btn" data-tab="tabForecast" type="button">B. Forecast</button>
         <button class="tab-btn subtab-btn" data-tab="tabCalendrier" type="button">C. Calendrier</button>
+        <button class="tab-btn subtab-btn" data-tab="tabPistes" type="button">D. Pistes à flairer</button>
       </div>
       <div class="tab-content active" id="tabTableau">
         <div class="kpis" id="kpis"></div>
@@ -446,6 +460,41 @@
           <div class="cal-body" id="calendar"></div>
         </div>
       </div>
+      <div class="tab-content" id="tabPistes">
+        <div class="card table-card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">Pistes à flairer</h3>
+              <div class="card-sub">Entreprises sans statut issues du bloc “Hors tableau”.</div>
+            </div>
+            <div class="toolbar-row">
+              <span class="badge" id="pistesRowCount">0 ligne</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="pistes-intro">
+              <div class="mini-note">Cette liste se met à jour automatiquement : toute entreprise ajoutée sans statut reste visible dans le tableau existant et apparaît aussi ici.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="pistes-table">
+              <thead>
+                <tr>
+                  <th style="min-width:58px;"><div class="th-wrap"><div class="th-label">Choix</div><button class="filter-btn" data-pistes-pop="pistes-pop-choice" type="button">⏷</button><div class="pistes-filter-pop" id="pistes-pop-choice"><h5>Filtre • Choix</h5><div class="stack-mini" id="pistesChoiceFilters"></div><div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;"><button class="btn small soft" type="button" id="pistesChoiceAll">Tout</button><button class="btn small soft" type="button" id="pistesChoiceReset">Reset</button></div></div></div></th>
+                  <th style="min-width:68px;"><div class="th-wrap"><div class="th-label">Q</div><button class="filter-btn" data-pistes-pop="pistes-pop-quarter" type="button">⏷</button><div class="pistes-filter-pop" id="pistes-pop-quarter"><h5>Filtre • Quarter</h5><div class="stack-mini" id="pistesQuarterFilters"></div><div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;"><button class="btn small soft" type="button" id="pistesQuarterAll">Tout</button><button class="btn small soft" type="button" id="pistesQuarterReset">Reset</button></div></div></div></th>
+                  <th><div class="th-wrap"><div class="th-label">Entreprise</div><button class="filter-btn" data-pistes-pop="pistes-pop-company" type="button">⏷</button><div class="pistes-filter-pop" id="pistes-pop-company"><h5>Filtre • Entreprise</h5><div class="stack-mini"><div class="tiny-row"><select id="pistesCompanyMode" class="tiny"><option value="contains">contains</option><option value="equals">equals</option></select><input id="pistesCompanyValue" class="tiny" type="text" placeholder="Filtrer"></div><button class="btn small soft" type="button" data-close-pistes-pop>Fermer</button></div></div></div></th>
+                  <th><div class="th-wrap"><div class="th-label">Produit</div><button class="filter-btn" data-pistes-pop="pistes-pop-product" type="button">⏷</button><div class="pistes-filter-pop" id="pistes-pop-product"><h5>Filtre • Produit</h5><div class="stack-mini" id="pistesProductFilters"></div><div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;"><button class="btn small soft" type="button" id="pistesProductAll">Tout</button><button class="btn small soft" type="button" id="pistesProductReset">Reset</button></div></div></div></th>
+                  <th><div class="th-wrap"><div class="th-label">Notes</div><button class="filter-btn" data-pistes-pop="pistes-pop-notes" type="button">⏷</button><div class="pistes-filter-pop" id="pistes-pop-notes"><h5>Filtre • Notes</h5><div class="stack-mini"><div class="tiny-row"><select id="pistesNotesMode" class="tiny"><option value="contains">contains</option></select><input id="pistesNotesValue" class="tiny" type="text" placeholder="Filtrer"></div><button class="btn small soft" type="button" data-close-pistes-pop>Fermer</button></div></div></div></th>
+                  <th><div class="th-wrap"><div class="th-label">Next action</div><button class="filter-btn" data-pistes-pop="pistes-pop-nextaction" type="button">⏷</button><div class="pistes-filter-pop" id="pistes-pop-nextaction"><h5>Filtre • Next action</h5><div class="stack-mini"><div class="tiny-row"><select id="pistesNextActionMode" class="tiny"><option value="contains">contains</option><option value="equals">equals</option></select><input id="pistesNextActionValue" class="tiny" type="text" placeholder="Filtrer"></div><button class="btn small soft" type="button" data-close-pistes-pop>Fermer</button></div></div></div></th>
+                  <th><div class="th-wrap"><div class="th-label">Next steps</div><button class="filter-btn" data-pistes-pop="pistes-pop-nextstep" type="button">⏷</button><div class="pistes-filter-pop" id="pistes-pop-nextstep"><h5>Filtre • Next steps</h5><div class="stack-mini"><div><label for="pistesNextStep">Equals</label><input id="pistesNextStep" class="tiny" type="date"></div><button class="btn small soft" type="button" id="pistesSortNextStep">Tri chronologique : Off</button><button class="btn small soft" type="button" data-close-pistes-pop>Fermer</button></div></div></div></th>
+                  <th style="min-width:68px;"><div class="th-wrap"><div class="th-label">Supprimer</div></div></th>
+                </tr>
+              </thead>
+              <tbody id="pistesTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
       <div class="footer"></div>
     </section>
   </div>
@@ -516,6 +565,7 @@
     let realtimeChannel = null;
     let currentUser = null;
     const FILTERS='speexx_dashboard_filters_v8_multiowner';
+    const PISTES_FILTERS='speexx_dashboard_pistes_filters_v1_multiowner';
     const FORECAST_META='speexx_dashboard_forecast_meta_v8_multiowner';
     const SQL_BONUS_META='speexx_dashboard_sql_bonus_meta_v8_multiowner';
     const APP_PREFS='speexx_dashboard_prefs_v8_multiowner';
@@ -564,6 +614,10 @@
     function defaultForecastMeta(){ return { anais: defaultForecastMetaEntry(), jeremie: defaultForecastMetaEntry() }; }
     function defaultSqlBonusMeta(){ return { anais:{}, jeremie:{} }; }
     function defaultFiltersByOwner(){ return { anais: defaultFilters(), jeremie: defaultFilters() }; }
+    function defaultPistesFilters(){ return { choices:['Oui','Non'], quarters:[...QUARTER_FILTER_OPTIONS], companyMode:'contains', companyValue:'', products:[...PRODUCTS], notesMode:'contains', notesValue:'', nextActionMode:'contains', nextActionValue:'', nextStep:'', sortNextStep:'' }; }
+    function sanitizePistesFilterObject(raw){ const base=defaultPistesFilters(); const merged={...base, ...(raw||{})}; merged.choices = Array.isArray(raw?.choices) && raw.choices.length ? raw.choices.map(String) : [...base.choices]; merged.quarters = Array.isArray(raw?.quarters) && raw.quarters.length ? raw.quarters.map(String) : [...QUARTER_FILTER_OPTIONS]; merged.products = Array.isArray(raw?.products) && raw.products.length ? raw.products.map(String) : [...PRODUCTS]; merged.sortNextStep = normalizeSortDir(raw?.sortNextStep ?? merged.sortNextStep); return merged; }
+    function normalizePistesFiltersByOwner(raw){ return { anais: sanitizePistesFilterObject(raw?.anais), jeremie: sanitizePistesFilterObject(raw?.jeremie) }; }
+    function defaultPistesFiltersByOwner(){ return { anais: defaultPistesFilters(), jeremie: defaultPistesFilters() }; }
     function defaultPrefs(){ return { activeOwner:'jeremie', activeTabsByOwner:{ anais:'tabTableau', jeremie:'tabTableau' } }; }
     function normalizeOwnerValue(owner){ const raw = String(owner || '').trim(); return raw ? raw : 'Jérémie'; }
     function normalizeRow(r){ const owner = normalizeOwnerValue(r.owner); const status = normalizeStatusValue(r.status); return { id: r.id || uid(), company: r.company || '', owner, product: r.product || '', notes: r.notes || '', qualDate: r.qualDate || '', nextAction: r.nextAction || '', nextStep: r.nextStep || '', status, statusCustom: '', weight: autoWeightForStatus(status) || String(r.weight ?? ''), selected: !!r.selected, createdAt: r.createdAt || Date.now() }; }
@@ -573,17 +627,18 @@
       { id: uid(), company:'Test 3', owner:'Anaïs', product:'MT', notes:'', qualDate:'', nextAction:'', nextStep:'', status:'RDV', weight:'0.75', selected:false, createdAt: Date.now() }
     ].map(normalizeRow);
     const savedFilters = normalizeFiltersByOwner(read(FILTERS, defaultFiltersByOwner()));
+    const savedPistesFilters = normalizePistesFiltersByOwner(read(PISTES_FILTERS, defaultPistesFiltersByOwner()));
     const savedForecastMeta = read(FORECAST_META, defaultForecastMeta());
     const savedSqlBonusMeta = read(SQL_BONUS_META, defaultSqlBonusMeta());
     const savedPrefs = read(APP_PREFS, defaultPrefs());
-    const state = { rows: JSON.parse(JSON.stringify(demoRows)), filtersByOwner: savedFilters, forecastMetaByOwner: savedForecastMeta, sqlBonusMetaByOwner: savedSqlBonusMeta, selectedIdByOwner: { anais:null, jeremie:null }, activeOwner: savedPrefs.activeOwner || 'jeremie', activeTabsByOwner: savedPrefs.activeTabsByOwner || { anais:'tabTableau', jeremie:'tabTableau' }, calViewByOwner: { anais:'month', jeremie:'month' }, calDateByOwner: { anais:new Date(), jeremie:new Date() } };
+    const state = { rows: JSON.parse(JSON.stringify(demoRows)), filtersByOwner: savedFilters, pistesFiltersByOwner: savedPistesFilters, forecastMetaByOwner: savedForecastMeta, sqlBonusMetaByOwner: savedSqlBonusMeta, selectedIdByOwner: { anais:null, jeremie:null }, activeOwner: savedPrefs.activeOwner || 'jeremie', activeTabsByOwner: savedPrefs.activeTabsByOwner || { anais:'tabTableau', jeremie:'tabTableau' }, calViewByOwner: { anais:'month', jeremie:'month' }, calDateByOwner: { anais:new Date(), jeremie:new Date() } };
     function currentFilters(){ return state.filtersByOwner[state.activeOwner]; }
     function currentSelectedId(){ return state.selectedIdByOwner[state.activeOwner] || null; }
     function setCurrentSelectedId(id){ state.selectedIdByOwner[state.activeOwner] = id || null; }
     function currentCalDate(){ return state.calDateByOwner[state.activeOwner]; }
     function currentCalView(){ return state.calViewByOwner[state.activeOwner]; }
     function currentSubTab(){ return state.activeTabsByOwner[state.activeOwner]; }
-    function save(){ localStorage.setItem(FILTERS, JSON.stringify(state.filtersByOwner)); localStorage.setItem(FORECAST_META, JSON.stringify(state.forecastMetaByOwner)); localStorage.setItem(SQL_BONUS_META, JSON.stringify(state.sqlBonusMetaByOwner)); localStorage.setItem(APP_PREFS, JSON.stringify({ activeOwner: state.activeOwner, activeTabsByOwner: state.activeTabsByOwner })); }
+    function save(){ localStorage.setItem(FILTERS, JSON.stringify(state.filtersByOwner)); localStorage.setItem(PISTES_FILTERS, JSON.stringify(state.pistesFiltersByOwner)); localStorage.setItem(FORECAST_META, JSON.stringify(state.forecastMetaByOwner)); localStorage.setItem(SQL_BONUS_META, JSON.stringify(state.sqlBonusMetaByOwner)); localStorage.setItem(APP_PREFS, JSON.stringify({ activeOwner: state.activeOwner, activeTabsByOwner: state.activeTabsByOwner })); }
     function emptyToNull(value) { return value === '' || value === undefined || value === null ? null : value; }
     function weightToDb(value) { if (value === '' || value === undefined || value === null) return null; return Number(value); }
     function toDbRow(r) { return { id: r.id, company: r.company || '', owner: normalizeOwnerValue(r.owner), product: r.product || '', notes: r.notes || '', qual_date: emptyToNull(r.qualDate), next_action: r.nextAction || '', next_step: emptyToNull(r.nextStep), status: normalizeStatusValue(r.status || ''), weight: weightToDb(r.weight), selected: !!r.selected, created_at_ms: r.createdAt || Date.now() }; }
@@ -817,6 +872,167 @@
     function resetForm(){ document.getElementById('oppForm').reset(); document.getElementById('recordId').value=''; document.getElementById('product').value=''; document.getElementById('status').value=''; document.getElementById('weight').value=''; }
     function fillForm(r, open=true){ document.getElementById('recordId').value=r.id || ''; document.getElementById('company').value=r.company || ''; document.getElementById('product').value=r.product || ''; document.getElementById('notes').value=r.notes || ''; document.getElementById('qualDate').value=r.qualDate || ''; document.getElementById('nextAction').value=r.nextAction || ''; document.getElementById('nextStep').value=r.nextStep || ''; document.getElementById('status').value=normalizeStatusValue(r.status) || ''; document.getElementById('weight').value=autoWeightForStatus(r.status); if(open) document.getElementById('formOverlay').classList.add('show'); }
     function renderTable(rows){ const tbody=document.getElementById('tbody'); document.getElementById('rowCount').textContent=`${rows.length} ligne${rows.length>1?'s':''}`; tbody.innerHTML=''; const activeSelectedId = currentSelectedId(); const checkAll=document.getElementById('checkAllVisible'); const allChecked = rows.length && rows.every(r=>r.selected); checkAll.checked=!!allChecked; checkAll.indeterminate = rows.some(r=>r.selected) && !allChecked; if(!rows.length){ tbody.innerHTML='<tr><td colspan="11" style="padding:18px;text-align:center;color:#666;background:#fff;">Aucune donnée affichée. Vérifie que la table <strong>dashboard_RDV</strong> contient des lignes et que les policies RLS anon sont bien actives. Si la base est vide, utilise <strong>Import CSV</strong>, <strong>+ Ajouter</strong> ou le bouton <strong>Initialiser données test</strong>.</td></tr>'; return; } rows.forEach(r=>{ const tr=document.createElement('tr'); if(activeSelectedId===r.id) tr.classList.add('selected'); tr.innerHTML=`<td class="cell-checkbox"><input class="row-check" data-id="${esc(r.id)}" type="checkbox" ${r.selected ? 'checked' : ''}></td><td><span class="pill" style="background:#fafafa;color:#000;border-color:#ddd;">${esc(quarterLabelForRow(r))}</span></td><td><strong class="${companyClassForStatus(r.status)}">${esc(r.company||'—')}</strong></td><td>${r.product ? `<span class="pill" style="background:#fafafa;color:#000;border-color:#ddd;">${esc(r.product)}</span>` : '—'}</td><td>${esc(r.notes||'—')}</td><td>${formatDate(r.qualDate)}</td><td>${esc(r.nextAction||'—')}</td><td>${formatDate(r.nextStep)}</td><td><span class="pill ${badgeClass(displayStatus(r))}">${esc(displayStatus(r))}</span></td><td><strong>${r.weight ? niceWeight(r.weight) : '—'}</strong></td><td><button class="btn icon danger delete-row-btn" type="button" data-id="${esc(r.id)}" title="Supprimer cette ligne">✕</button></td>`; tr.addEventListener('click',(e)=>{ if(e.target && (e.target.classList.contains('row-check') || e.target.classList.contains('delete-row-btn'))) return; setCurrentSelectedId(r.id); fillForm(r,true); save(); render(); }); tbody.appendChild(tr); }); tbody.querySelectorAll('.row-check').forEach(cb=>{ cb.addEventListener('click',e=>e.stopPropagation()); cb.addEventListener('change',()=>{ const row=state.rows.find(x=>x.id===cb.dataset.id); if(row) row.selected=cb.checked; save(); render(); }); }); tbody.querySelectorAll('.delete-row-btn').forEach(btn => { btn.addEventListener('click', async (e) => { e.stopPropagation(); const id = btn.dataset.id; if (!id) return; if (!confirm('Supprimer cette ligne ?')) return; const ok = await deleteRowFromSupabase(id); if (!ok) return; state.rows = state.rows.filter(r => r.id !== id); if (currentSelectedId() === id) setCurrentSelectedId(null); save(); render(); await loadRowsFromSupabase(); });}); if(!rows.length){ const tr=document.createElement('tr'); tr.innerHTML='<td colspan="11" style="padding:18px 10px;text-align:center;color:#666;">Aucune opportunité ne correspond aux filtres actuels.</td>'; tbody.appendChild(tr); } }
+
+    function currentPistesFilters(){
+      if(!state.pistesFiltersByOwner) state.pistesFiltersByOwner = defaultPistesFiltersByOwner();
+      state.pistesFiltersByOwner[state.activeOwner] = sanitizePistesFilterObject(state.pistesFiltersByOwner[state.activeOwner]);
+      return state.pistesFiltersByOwner[state.activeOwner];
+    }
+    function getPistesRows(ownerKey = state.activeOwner){
+      return getOwnerRows(ownerKey).filter(r => displayStatus(r) === '—');
+    }
+    function closeAllPistesPops(exceptId=''){
+      document.querySelectorAll('.pistes-filter-pop').forEach(pop => { if(pop.id !== exceptId) pop.classList.remove('show'); });
+    }
+    function renderPistesChoiceList(targetId, values, selected, key){
+      const el=document.getElementById(targetId);
+      if(!el) return;
+      const selectedValues = Array.isArray(selected) && selected.length ? selected.map(String) : values.map(String);
+      el.innerHTML='';
+      values.forEach(v => {
+        const label=document.createElement('label');
+        label.className='check compact';
+        const input=document.createElement('input');
+        input.type='checkbox';
+        input.checked=selectedValues.includes(String(v));
+        input.style.accentColor='var(--orange)';
+        input.addEventListener('change',()=>{
+          const f=currentPistesFilters();
+          if(!Array.isArray(f[key])) f[key]=values.map(String);
+          if(input.checked){ if(!f[key].includes(String(v))) f[key].push(String(v)); }
+          else { f[key]=f[key].filter(x=>x!==String(v)); if(f[key].length===0) f[key]=values.map(String); }
+          save(); render();
+        });
+        const span=document.createElement('span');
+        span.textContent=v;
+        label.appendChild(input);
+        label.appendChild(span);
+        el.appendChild(label);
+      });
+    }
+    function syncPistesInputs(){
+      const f=currentPistesFilters();
+      const map={ pistesCompanyMode:f.companyMode, pistesCompanyValue:f.companyValue, pistesNotesMode:f.notesMode, pistesNotesValue:f.notesValue, pistesNextActionMode:f.nextActionMode, pistesNextActionValue:f.nextActionValue, pistesNextStep:f.nextStep };
+      Object.entries(map).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.value = val ?? ''; });
+      const sortBtn=document.getElementById('pistesSortNextStep');
+      if(sortBtn) sortBtn.textContent='Tri chronologique : '+sortDirLabel(f.sortNextStep);
+      renderPistesChoiceList('pistesChoiceFilters', ['Oui','Non'], f.choices, 'choices');
+      renderPistesChoiceList('pistesQuarterFilters', QUARTER_FILTER_OPTIONS, f.quarters, 'quarters');
+      renderPistesChoiceList('pistesProductFilters', PRODUCTS, f.products, 'products');
+    }
+    function updatePistesFromInputs(){
+      const f=currentPistesFilters();
+      const get = id => document.getElementById(id);
+      if(get('pistesCompanyMode')) f.companyMode=get('pistesCompanyMode').value;
+      if(get('pistesCompanyValue')) f.companyValue=get('pistesCompanyValue').value;
+      if(get('pistesNotesMode')) f.notesMode=get('pistesNotesMode').value;
+      if(get('pistesNotesValue')) f.notesValue=get('pistesNotesValue').value;
+      if(get('pistesNextActionMode')) f.nextActionMode=get('pistesNextActionMode').value;
+      if(get('pistesNextActionValue')) f.nextActionValue=get('pistesNextActionValue').value;
+      if(get('pistesNextStep')) f.nextStep=get('pistesNextStep').value;
+      save(); render();
+    }
+    function getFilteredPistesRows(ownerKey = state.activeOwner){
+      const f = sanitizePistesFilterObject(state.pistesFiltersByOwner[ownerKey]);
+      state.pistesFiltersByOwner[ownerKey] = f;
+      let rows = getPistesRows(ownerKey)
+        .filter(r => f.choices.includes(r.selected ? 'Oui' : 'Non'))
+        .filter(r => f.quarters.includes(String(quarterLabelForRow(r))))
+        .filter(r => isMatch(r.company, f.companyValue, f.companyMode))
+        .filter(r => !r.product || f.products.includes(String(r.product)))
+        .filter(r => isMatch(r.notes, f.notesValue, f.notesMode))
+        .filter(r => isMatch(r.nextAction, f.nextActionValue, f.nextActionMode))
+        .filter(r => !f.nextStep || r.nextStep === f.nextStep);
+      rows.sort((a,b)=>{
+        if(f.sortNextStep){
+          const c = dateSortValueLast(a.nextStep) - dateSortValueLast(b.nextStep);
+          if(c) return f.sortNextStep === 'desc' ? -c : c;
+        }
+        return String(a.company||'').localeCompare(String(b.company||''),'fr') || (a.createdAt||0) - (b.createdAt||0);
+      });
+      return rows;
+    }
+    async function savePistesRowField(id, field, value){
+      const row = state.rows.find(r => r.id === id);
+      if(!row) return;
+      if(field === 'selected') row.selected = !!value;
+      if(field === 'product') row.product = value;
+      if(field === 'notes') row.notes = value;
+      if(field === 'nextAction') row.nextAction = value;
+      if(field === 'nextStep') row.nextStep = value;
+      const ok = await saveRowToSupabase(row);
+      if(!ok) return;
+      save();
+      render();
+    }
+    async function deletePistesRow(id){
+      const row = state.rows.find(r => r.id === id);
+      if(!row) return;
+      if(!confirm('Supprimer cette piste du dashboard ?')) return;
+      const ok = await deleteRowFromSupabase(id);
+      if(!ok) return;
+      state.rows = state.rows.filter(r => r.id !== id);
+      if(currentSelectedId() === id) setCurrentSelectedId(null);
+      save();
+      render();
+      await loadRowsFromSupabase();
+    }
+    function renderPistesTable(){
+      syncPistesInputs();
+      const tbody=document.getElementById('pistesTbody');
+      const count=document.getElementById('pistesRowCount');
+      if(!tbody) return;
+      const rows=getFilteredPistesRows();
+      if(count) count.textContent=`${rows.length} ligne${rows.length>1?'s':''}`;
+      if(!rows.length){
+        tbody.innerHTML='<tr><td colspan="8" class="pistes-empty">Aucune entreprise sans statut pour cette vue.</td></tr>';
+        return;
+      }
+      tbody.innerHTML=rows.map(r=>`<tr data-pistes-id="${esc(r.id)}">
+        <td class="cell-checkbox"><input class="row-check pistes-choice" data-id="${esc(r.id)}" type="checkbox" ${r.selected ? 'checked' : ''}></td>
+        <td><span class="pill" style="background:#fafafa;color:#000;border-color:#ddd;">${esc(quarterLabelForRow(r))}</span></td>
+        <td><div class="pistes-company">${esc(r.company||'—')}</div><div class="pistes-sub">${esc(ownerLabelFromKey(ownerKeyFromValue(r.owner)))} · ${formatDate(r.qualDate)}</div></td>
+        <td><select class="pistes-product" data-id="${esc(r.id)}"><option value="" ${!r.product?'selected':''}>--</option>${PRODUCTS.map(p=>`<option value="${esc(p)}" ${r.product===p?'selected':''}>${esc(p)}</option>`).join('')}</select></td>
+        <td><textarea class="pistes-notes" data-id="${esc(r.id)}" placeholder="Notes…">${esc(r.notes||'')}</textarea></td>
+        <td><input class="input pistes-next-action" data-id="${esc(r.id)}" type="text" value="${esc(r.nextAction||'')}" placeholder="Next action"></td>
+        <td><input class="input pistes-next-step" data-id="${esc(r.id)}" type="date" value="${esc(r.nextStep||'')}"></td>
+        <td><button class="btn icon danger pistes-delete" type="button" data-id="${esc(r.id)}" title="Supprimer cette ligne">✕</button></td>
+      </tr>`).join('');
+      tbody.querySelectorAll('.pistes-choice').forEach(el=>el.addEventListener('change',()=>savePistesRowField(el.dataset.id,'selected',el.checked)));
+      tbody.querySelectorAll('.pistes-product').forEach(el=>el.addEventListener('change',()=>savePistesRowField(el.dataset.id,'product',el.value)));
+      tbody.querySelectorAll('.pistes-notes').forEach(el=>el.addEventListener('change',()=>savePistesRowField(el.dataset.id,'notes',el.value.trim())));
+      tbody.querySelectorAll('.pistes-next-action').forEach(el=>el.addEventListener('change',()=>savePistesRowField(el.dataset.id,'nextAction',el.value.trim())));
+      tbody.querySelectorAll('.pistes-next-step').forEach(el=>el.addEventListener('change',()=>savePistesRowField(el.dataset.id,'nextStep',el.value)));
+      tbody.querySelectorAll('.pistes-delete').forEach(el=>el.addEventListener('click',()=>deletePistesRow(el.dataset.id)));
+    }
+    function bindPistesUi(){
+      document.addEventListener('click',(e)=>{ if(!e.target.closest('#tabPistes .th-wrap')) closeAllPistesPops(); });
+      document.querySelectorAll('[data-pistes-pop]').forEach(btn=>{
+        btn.addEventListener('click',(e)=>{
+          e.stopPropagation();
+          const pop=document.getElementById(btn.dataset.pistesPop);
+          if(!pop) return;
+          const willOpen=!pop.classList.contains('show');
+          closeAllPistesPops();
+          if(willOpen) pop.classList.add('show');
+        });
+      });
+      document.querySelectorAll('[data-close-pistes-pop]').forEach(btn=>btn.addEventListener('click',()=>closeAllPistesPops()));
+      ['pistesCompanyMode','pistesCompanyValue','pistesNotesMode','pistesNotesValue','pistesNextActionMode','pistesNextActionValue','pistesNextStep'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){ el.addEventListener('input', updatePistesFromInputs); el.addEventListener('change', updatePistesFromInputs); }
+      });
+      const sortBtn=document.getElementById('pistesSortNextStep');
+      if(sortBtn) sortBtn.addEventListener('click',()=>{ const f=currentPistesFilters(); f.sortNextStep=nextSortDir(f.sortNextStep); save(); render(); });
+      const setAll=(key, values)=>{ const f=currentPistesFilters(); f[key]=[...values]; save(); render(); };
+      document.getElementById('pistesChoiceAll')?.addEventListener('click',()=>setAll('choices',['Oui','Non']));
+      document.getElementById('pistesChoiceReset')?.addEventListener('click',()=>setAll('choices',['Oui','Non']));
+      document.getElementById('pistesQuarterAll')?.addEventListener('click',()=>setAll('quarters',QUARTER_FILTER_OPTIONS));
+      document.getElementById('pistesQuarterReset')?.addEventListener('click',()=>setAll('quarters',QUARTER_FILTER_OPTIONS));
+      document.getElementById('pistesProductAll')?.addEventListener('click',()=>setAll('products',PRODUCTS));
+      document.getElementById('pistesProductReset')?.addEventListener('click',()=>setAll('products',PRODUCTS));
+    }
+
     function getQuarterSourceDate(r){ const s=plain(displayStatus(r)); if(s==='sql' || s==='sql to nurture') return r.qualDate || r.nextStep || ''; return r.nextStep || r.qualDate || ''; }
     function getQuarterNumberFromDateStr(dateStr){ if(!dateStr) return null; const d=new Date(dateStr+'T00:00:00'); return isNaN(d) ? null : Math.floor(d.getMonth()/3)+1; }
     function getForecastQuarter(row){ return getQuarterNumberFromDateStr(getQuarterSourceDate(row)); }
@@ -1480,8 +1696,9 @@
       document.getElementById('nextBtn').addEventListener('click',()=>shiftPeriod(1));
       document.getElementById('todayBtn').addEventListener('click',()=>{ state.calDateByOwner[state.activeOwner]=new Date(); render(); });
       bindFilterPopupButtons();
+      bindPistesUi();
     }
-    function render(){ const filtered=getFilteredRows(); const dashboard=getRowsForCalendarAndForecast(); syncInputs(); renderActiveChips(); renderSummary(); renderSelectionBanner(); renderKpis(filtered); renderTable(filtered); renderForecastBoards(); renderCalendar(dashboard); save(); }
+    function render(){ const filtered=getFilteredRows(); const dashboard=getRowsForCalendarAndForecast(); syncInputs(); renderActiveChips(); renderSummary(); renderSelectionBanner(); renderKpis(filtered); renderTable(filtered); renderForecastBoards(); renderCalendar(dashboard); renderPistesTable(); save(); }
     bind(); resetForm(); render(); cleanSupabaseUrlHash(); listenAuthChanges(); initSupabaseDashboard();
   </script>
 </body>
