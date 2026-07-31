@@ -1371,7 +1371,10 @@
     function computeProductSqlDistribution(ownerKey){
       const rows = getRowsForProductStatusSummary(ownerKey).filter(r => {
         const s = displayStatus(r);
-        return (s === 'SQL' || s === 'SQL to Nurture') && String(r.product || '').trim();
+        const hasProduct = String(r.product || '').trim();
+        const isSqlOrNurture = s === 'SQL' || s === 'SQL to Nurture';
+        const isSqlBonus = s === 'SQL' && !r.qualDate;
+        return isSqlOrNurture && hasProduct && !isSqlBonus;
       });
       const productSet = new Set(PRODUCTS);
       rows.forEach(r => productSet.add(String(r.product || '').trim()));
@@ -1419,6 +1422,7 @@
           <td>${esc(product)}</td>
           <td class="num">${esc(String(primary.sql))}</td>
           <td class="num">${esc(fmtForecastPercent(primary.pct))}</td>
+          <td class="num">${esc(String(team.sql))}</td>
           <td class="num">${esc(fmtForecastPercent(team.pct))}</td>
         </tr>`;
         }
@@ -1438,17 +1442,19 @@
               <thead>
                 <tr>
                   <th>Produit</th>
-                  <th>SQL</th>
+                  <th>SQL Jérémie</th>
                   <th>% Jérémie</th>
+                  <th>SQL Equipe</th>
                   <th>% équipe (Jérémie + Anaïs)</th>
                 </tr>
               </thead>
               <tbody>
-                ${bodyRows || '<tr><td colspan="4">Aucune entreprise SQL avec produit.</td></tr>'}
+                ${bodyRows || '<tr><td colspan="5">Aucune entreprise SQL avec produit.</td></tr>'}
                 <tr>
                   <td>Total</td>
                   <td class="num">${esc(String(totalPrimary))}</td>
                   <td class="num">${esc(fmtForecastPercent(totalPrimary ? 100 : null))}</td>
+                  <td class="num">${esc(String(totalTeam))}</td>
                   <td class="num">${esc(fmtForecastPercent(totalTeam ? 100 : null))}</td>
                 </tr>
               </tbody>
