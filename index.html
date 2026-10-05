@@ -176,6 +176,8 @@
     .forecast-topbar{display:flex;justify-content:space-between;align-items:center;gap:4px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:5px;padding:4px 5px;box-shadow:none}
     .forecast-legend{display:flex;gap:2px;flex-wrap:wrap;align-items:center}
     .forecast-tools{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+    .forecast-year-nav{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:6px;background:#fafafa;padding:2px}
+    .forecast-year-label{min-width:54px;text-align:center;font-size:.68rem;font-weight:900;font-variant-numeric:tabular-nums}
     .forecast-add-select{border:1px solid var(--line);border-radius:5px;background:#fff;color:#000;font:inherit;font-size:.56rem;font-weight:900;padding:2px 4px;height:24px}
     .forecast-add-select:focus{outline:none;border-color:rgba(255,121,0,.5);box-shadow:0 0 0 2px rgba(255,121,0,.12)}
     .forecast-empty-note{padding:5px 6px;font-size:.5rem;color:#666;background:#fafafa;border:1px dashed #ddd;border-radius:5px;text-align:center}
@@ -419,7 +421,13 @@
               <h3 class="card-title" id="forecastTitle">Forecast</h3>
               <div class="card-sub">Vue ultra compacte synchronisée avec la liste.</div>
             </div>
-            <div class="forecast-tools">
+            <div class="forecast-tools">  
+              <div class="forecast-year-nav" aria-label="Navigation entre les années du forecast">
+                <button class="btn icon forecast-year-prev" id="forecastPrevYearBtn" type="button" title="Année précédente" aria-label="Année précédente">◀</button>
+                <span class="forecast-year-label" id="forecastYearLabel"></span>
+                <button class="btn icon forecast-year-next" id="forecastNextYearBtn" type="button" title="Année suivante" aria-label="Année suivante">▶</button>
+                <button class="btn small soft" id="forecastCurrentYearBtn" type="button">Année en cours</button>
+              </div>
               <select class="forecast-add-select" id="forecastAddSelectJeremie">
                 <option value="sql">SQL</option>
                 <option value="rdv">RDV</option>
@@ -618,7 +626,7 @@
     function sanitizePistesFilterObject(raw){ const base=defaultPistesFilters(); const merged={...base, ...(raw||{})}; merged.choices = Array.isArray(raw?.choices) && raw.choices.length ? raw.choices.map(String) : [...base.choices]; merged.quarters = Array.isArray(raw?.quarters) && raw.quarters.length ? raw.quarters.map(String) : [...QUARTER_FILTER_OPTIONS]; merged.products = Array.isArray(raw?.products) && raw.products.length ? raw.products.map(String) : [...PRODUCTS]; merged.sortNextStep = normalizeSortDir(raw?.sortNextStep ?? merged.sortNextStep); return merged; }
     function normalizePistesFiltersByOwner(raw){ return { anais: sanitizePistesFilterObject(raw?.anais), jeremie: sanitizePistesFilterObject(raw?.jeremie) }; }
     function defaultPistesFiltersByOwner(){ return { anais: defaultPistesFilters(), jeremie: defaultPistesFilters() }; }
-    function defaultPrefs(){ return { activeOwner:'jeremie', activeTabsByOwner:{ anais:'tabTableau', jeremie:'tabTableau' } }; }
+    function defaultPrefs(){ const year=new Date().getFullYear(); return { activeOwner:'jeremie', activeTabsByOwner:{ anais:'tabTableau', jeremie:'tabTableau' }, forecastYearByOwner:{ anais:year, jeremie:year } }; }
     function normalizeOwnerValue(owner){ const raw = String(owner || '').trim(); return raw ? raw : 'Jérémie'; }
     function normalizeRow(r){ const owner = normalizeOwnerValue(r.owner); const status = normalizeStatusValue(r.status); return { id: r.id || uid(), company: r.company || '', owner, product: r.product || '', notes: r.notes || '', qualDate: r.qualDate || '', nextAction: r.nextAction || '', nextStep: r.nextStep || '', status, statusCustom: '', weight: autoWeightForStatus(status) || String(r.weight ?? ''), selected: !!r.selected, createdAt: r.createdAt || Date.now() }; }
     const demoRows = [
@@ -631,14 +639,18 @@
     const savedForecastMeta = read(FORECAST_META, defaultForecastMeta());
     const savedSqlBonusMeta = read(SQL_BONUS_META, defaultSqlBonusMeta());
     const savedPrefs = read(APP_PREFS, defaultPrefs());
-    const state = { rows: JSON.parse(JSON.stringify(demoRows)), filtersByOwner: savedFilters, pistesFiltersByOwner: savedPistesFilters, forecastMetaByOwner: savedForecastMeta, sqlBonusMetaByOwner: savedSqlBonusMeta, selectedIdByOwner: { anais:null, jeremie:null }, activeOwner: savedPrefs.activeOwner || 'jeremie', activeTabsByOwner: savedPrefs.activeTabsByOwner || { anais:'tabTableau', jeremie:'tabTableau' }, calViewByOwner: { anais:'month', jeremie:'month' }, calDateByOwner: { anais:new Date(), jeremie:new Date() } };
+    const currentYear = new Date().getFullYear();
+    const state = { rows: JSON.parse(JSON.stringify(demoRows)), filtersByOwner: savedFilters, pistesFiltersByOwner: savedPistesFilters, forecastMetaByOwner: savedForecastMeta, sqlBonusMetaByOwner: savedSqlBonusMeta, selectedIdByOwner: { anais:null, jeremie:null }, activeOwner: savedPrefs.activeOwner || 'jeremie', activeTabsByOwner: savedPrefs.activeTabsByOwner || { anais:'tabTableau', jeremie:'tabTableau' }, forecastYearByOwner: { anais:Number(savedPrefs.forecastYearByOwner?.anais)||currentYear, jeremie:Number(savedPrefs.forecastYearByOwner?.jeremie)||currentYear }, calViewByOwner: { anais:'month', jeremie:'month' }, calDateByOwner: { anais:new Date(), jeremie:new Date() } };
     function currentFilters(){ return state.filtersByOwner[state.activeOwner]; }
     function currentSelectedId(){ return state.selectedIdByOwner[state.activeOwner] || null; }
     function setCurrentSelectedId(id){ state.selectedIdByOwner[state.activeOwner] = id || null; }
     function currentCalDate(){ return state.calDateByOwner[state.activeOwner]; }
     function currentCalView(){ return state.calViewByOwner[state.activeOwner]; }
-    function currentSubTab(){ return state.activeTabsByOwner[state.activeOwner]; }
-    function save(){ localStorage.setItem(FILTERS, JSON.stringify(state.filtersByOwner)); localStorage.setItem(PISTES_FILTERS, JSON.stringify(state.pistesFiltersByOwner)); localStorage.setItem(FORECAST_META, JSON.stringify(state.forecastMetaByOwner)); localStorage.setItem(SQL_BONUS_META, JSON.stringify(state.sqlBonusMetaByOwner)); localStorage.setItem(APP_PREFS, JSON.stringify({ activeOwner: state.activeOwner, activeTabsByOwner: state.activeTabsByOwner })); }
+    function currentSubTab(){ return state.activeTabsByOwner[state.activeOwner]; }  
+    function currentForecastYear(ownerKey=state.activeOwner){ return Number(state.forecastYearByOwner?.[ownerKey]) || new Date().getFullYear(); }
+    function shiftForecastYear(step){ const year=currentForecastYear()+step; state.forecastYearByOwner.anais=year; state.forecastYearByOwner.jeremie=year; save(); render(); }
+    function resetForecastYear(){ const year=new Date().getFullYear(); state.forecastYearByOwner.anais=year; state.forecastYearByOwner.jeremie=year; save(); render(); }
+    function save(){ localStorage.setItem(FILTERS, JSON.stringify(state.filtersByOwner)); localStorage.setItem(PISTES_FILTERS, JSON.stringify(state.pistesFiltersByOwner)); localStorage.setItem(FORECAST_META, JSON.stringify(state.forecastMetaByOwner)); localStorage.setItem(SQL_BONUS_META, JSON.stringify(state.sqlBonusMetaByOwner)); localStorage.setItem(APP_PREFS, JSON.stringify({ activeOwner: state.activeOwner, activeTabsByOwner: state.activeTabsByOwner, forecastYearByOwner: state.forecastYearByOwner })); }
     function emptyToNull(value) { return value === '' || value === undefined || value === null ? null : value; }
     function weightToDb(value) { if (value === '' || value === undefined || value === null) return null; return Number(value); }
     function toDbRow(r) { return { id: r.id, company: r.company || '', owner: normalizeOwnerValue(r.owner), product: r.product || '', notes: r.notes || '', qual_date: emptyToNull(r.qualDate), next_action: r.nextAction || '', next_step: emptyToNull(r.nextStep), status: normalizeStatusValue(r.status || ''), weight: weightToDb(r.weight), selected: !!r.selected, created_at_ms: r.createdAt || Date.now() }; }
@@ -1061,22 +1073,29 @@
     function getForecastQuarter(row){ return getQuarterNumberFromDateStr(getQuarterSourceDate(row)); }
     function quarterLabelForRow(row){ const q=getForecastQuarter(row); return q ? `Q${q}` : '—'; }
     function dateSortValue(dateStr){ if(!dateStr) return 0; const d=new Date(dateStr+'T00:00:00'); return isNaN(d) ? 0 : d.getTime(); }
-    function makeQuarterDate(sectionKey, quarter){ const year=new Date().getFullYear(); const month=((quarter-1)*3)+2; const date=`${year}-${String(month).padStart(2,'0')}-15`; return sectionKey==='sql' ? {qualDate:date,nextStep:''} : {qualDate:'',nextStep:date}; }
-    function computeBoard(ownerKey){ const ownerRows=getOwnerRows(ownerKey); const noStatusRows=ownerRows.filter(r=>displayStatus(r)==='—'); const noDateRows=ownerRows.filter(r=>displayStatus(r)!=='—' && !getForecastQuarter(r)); const sectionData={}; FORECAST_SECTIONS.forEach(section=>{ const validRows=ownerRows.filter(r=>section.statuses.includes(displayStatus(r)) && getForecastQuarter(r)); const grouped={1:[],2:[],3:[],4:[]}; validRows.sort((a,b)=>{ const da=dateSortValue(getQuarterSourceDate(a)); const db=dateSortValue(getQuarterSourceDate(b)); if(da!==db) return da-db; return String(a.company||'').localeCompare(String(b.company||''),'fr'); }).forEach(r=>{ const q=getForecastQuarter(r); if(q) grouped[q].push(r); }); const maxGrouped=Math.max(grouped[1].length, grouped[2].length, grouped[3].length, grouped[4].length, 0); const extra=((state.forecastMetaByOwner[ownerKey]||{})[section.key]||0); const rowsCount=Math.max(maxGrouped + extra, maxGrouped ? maxGrouped : extra ? extra : 1); sectionData[section.key]={grouped, rowsCount}; }); return {ownerKey,ownerRows,noStatusRows,noDateRows,sectionData}; }
-    function getSqlBonusRows(ownerKey){
-      return getOwnerRows(ownerKey).filter(r => displayStatus(r) === 'SQL' && !r.qualDate);
+    function makeQuarterDate(sectionKey, quarter, ownerKey=state.activeOwner){ const year=currentForecastYear(ownerKey); const month=((quarter-1)*3)+2; const date=`${year}-${String(month).padStart(2,'0')}-15`; return sectionKey==='sql' ? {qualDate:date,nextStep:''} : {qualDate:'',nextStep:date}; }
+    function computeBoard(ownerKey){ const year=currentForecastYear(ownerKey); const allOwnerRows=getOwnerRows(ownerKey); const ownerRows=allOwnerRows.filter(r=>{ const ds=getQuarterSourceDate(r); if(!ds) return false; const d=new Date(ds+'T00:00:00'); return !isNaN(d) && d.getFullYear()===year; }); const noStatusRows=allOwnerRows.filter(r=>displayStatus(r)==='—'); const noDateRows=allOwnerRows.filter(r=>displayStatus(r)!=='—' && !getForecastQuarter(r)); const sectionData={}; FORECAST_SECTIONS.forEach(section=>{ const validRows=ownerRows.filter(r=>section.statuses.includes(displayStatus(r)) && getForecastQuarter(r)); const grouped={1:[],2:[],3:[],4:[]}; validRows.sort((a,b)=>{ const da=dateSortValue(getQuarterSourceDate(a)); const db=dateSortValue(getQuarterSourceDate(b)); if(da!==db) return da-db; return String(a.company||'').localeCompare(String(b.company||''),'fr'); }).forEach(r=>{ const q=getForecastQuarter(r); if(q) grouped[q].push(r); }); const maxGrouped=Math.max(grouped[1].length, grouped[2].length, grouped[3].length, grouped[4].length, 0); const extra=((state.forecastMetaByOwner[ownerKey]||{})[section.key]||0); const rowsCount=Math.max(maxGrouped + extra, maxGrouped ? maxGrouped : extra ? extra : 1); sectionData[section.key]={grouped, rowsCount}; }); return {ownerKey,ownerRows,noStatusRows,noDateRows,sectionData}; }
+    function getSqlBonusRows(ownerKey){  
+      const year=currentForecastYear(ownerKey);
+      const ownerMeta=(state.sqlBonusMetaByOwner && state.sqlBonusMetaByOwner[ownerKey]) ? state.sqlBonusMetaByOwner[ownerKey] : {};
+      return getOwnerRows(ownerKey).filter(r => {
+        if(displayStatus(r) !== 'SQL' || r.qualDate) return false;
+        const raw=ownerMeta[r.id];
+        const assignedYear=(raw && typeof raw==='object') ? Number(raw.year) : new Date().getFullYear();
+        return assignedYear===year;
+      });  
     }
     function getSqlBonusQuarter(row, ownerKey){
       const ownerMeta = (state.sqlBonusMetaByOwner && state.sqlBonusMetaByOwner[ownerKey]) ? state.sqlBonusMetaByOwner[ownerKey] : {};
       const raw = ownerMeta[row.id];
-      const q = Number(raw || 1);
+      const q = Number((raw && typeof raw==='object') ? raw.quarter : (raw || 1));
       return q >= 1 && q <= 4 ? q : 1;
     }
     function setSqlBonusQuarter(ownerKey, rowId, quarter){
       if(!state.sqlBonusMetaByOwner) state.sqlBonusMetaByOwner = defaultSqlBonusMeta();
       if(!state.sqlBonusMetaByOwner[ownerKey]) state.sqlBonusMetaByOwner[ownerKey] = {};
       const q = Number(quarter || 1);
-      state.sqlBonusMetaByOwner[ownerKey][rowId] = q >= 1 && q <= 4 ? q : 1;
+      state.sqlBonusMetaByOwner[ownerKey][rowId] = { quarter: q >= 1 && q <= 4 ? q : 1, year: currentForecastYear(ownerKey) };
       save();
       render();
     }
@@ -1175,7 +1194,7 @@
       if(!section || !quarter) return;
 
       const ownerValue=ownerValueFromKey(ownerKey);
-      const dates=makeQuarterDate(sectionKey, quarter);
+      const dates=makeQuarterDate(sectionKey, quarter, ownerKey);
       const dedupeKey=[rowId || '', ownerKey || '', sectionKey || '', String(quarter), norm(company)].join('|');
       const now=Date.now();
 
@@ -1388,8 +1407,14 @@
     }
 
     function getRowsForProductStatusSummary(ownerKey){
-      if(ownerKey === 'general') return [...getOwnerRows('jeremie'), ...getOwnerRows('anais')];
-      return getOwnerRows(ownerKey);
+      const year=currentForecastYear();
+      const rows=ownerKey === 'general' ? [...getOwnerRows('jeremie'), ...getOwnerRows('anais')] : getOwnerRows(ownerKey);
+      return rows.filter(r=>{
+        const ds=getQuarterSourceDate(r);
+        if(!ds) return false;
+        const d=new Date(ds+'T00:00:00');
+        return !isNaN(d) && d.getFullYear()===year;
+      });
     }
     function computeProductSqlDistribution(ownerKey){
       const rows = getRowsForProductStatusSummary(ownerKey).filter(r => {
@@ -1528,7 +1553,7 @@
       const generalSummary = mergeQuarterSummaries(current, anaisSummary);
       return `<div class="forecast-summary-zone forecast-summary-grid"><div>${renderQuarterSummaryTable('Général', generalSummary)}${renderProductStatusSummaryTable('Répartition SQL par produit — Equipe', 'jeremie', { mode:'withTeamPercent' })}</div><div>${renderQuarterSummaryTable('Jérémie', current)}${renderQuarterSummaryTable('Anaïs', anaisSummary)}</div></div>`;
     }
-    function renderForecastBoards(){ const host=document.getElementById('forecastBoardJeremie'); if(host) host.innerHTML=renderBoardTable(state.activeOwner); const summaryHost=document.getElementById('forecastSummaryZone'); if(summaryHost) summaryHost.innerHTML=renderForecastSummaryZone(); bindForecastBoardInputs(); document.getElementById('forecastTitle').textContent = 'Forecast — ' + ownerLabelFromKey(state.activeOwner); }
+    function renderForecastBoards(){ const year=currentForecastYear(); const host=document.getElementById('forecastBoardJeremie'); if(host) host.innerHTML=renderBoardTable(state.activeOwner); const summaryHost=document.getElementById('forecastSummaryZone'); if(summaryHost) summaryHost.innerHTML=renderForecastSummaryZone(); bindForecastBoardInputs(); document.getElementById('forecastTitle').textContent = 'Forecast — ' + ownerLabelFromKey(state.activeOwner) + ' — ' + year; const label=document.getElementById('forecastYearLabel'); if(label) label.textContent=String(year); const currentBtn=document.getElementById('forecastCurrentYearBtn'); if(currentBtn) currentBtn.disabled=year===new Date().getFullYear(); }
     function getCalendarDate(r){ return r.nextStep || r.qualDate || ''; }
     function renderDayCell(dateObj,inMonth,events,today){ const limited=events.slice(0,3); const more=events.length-limited.length; return `<div class="day ${inMonth?'':'out'} ${today?'today':''}"><div class="day-num">${dateObj.getDate()}</div>${limited.map(r=>`<div class="ev ${eventClass(displayStatus(r))}" title="${esc(r.company||'')} • ${esc(r.nextAction||'')}">${esc(r.company||'Action')} — ${esc((r.nextAction||'').slice(0,12))}</div>`).join('')}${more>0 ? `<div class="subtle" style="font-size:.56rem;">+ ${more}</div>` : ''}</div>`; }
     function renderMonthGrid(dateObj, rows){ const year=dateObj.getFullYear(); const month=dateObj.getMonth(); const first=new Date(year,month,1); const last=new Date(year,month+1,0); const start=(first.getDay()+6)%7; const total=Math.ceil((start+last.getDate())/7)*7; const todayKey=toKey(new Date()); let html=`<div class="month-grid">${WEEK.map(d=>`<div class="weekday">${d}</div>`).join('')}`; for(let i=0;i<total;i++){ const dn=i-start+1; const cellDate=new Date(year,month,dn); const inMonth=cellDate.getMonth()===month; const key=toKey(cellDate); const events=rows.filter(r=>{ const ds=getCalendarDate(r); if(!ds) return false; return toKey(new Date(ds))===key; }); html+=renderDayCell(cellDate,inMonth,events,key===todayKey); } html+='</div>'; return html; }
@@ -1548,7 +1573,7 @@
     function updateFromLeft(){ const f=currentFilters(); f.companyMode=document.getElementById('fCompanyMode').value; f.companyValue=document.getElementById('fCompanyValue').value; f.notesMode=document.getElementById('fNotesMode').value; f.notesValue=document.getElementById('fNotesValue').value; f.qualDate=document.getElementById('fQualDate').value; f.nextActionMode=document.getElementById('fNextActionMode').value; f.nextActionValue=document.getElementById('fNextActionValue').value; f.nextStep=document.getElementById('fNextStep').value; save(); render(); }
     function updateFromHeader(){ const f=currentFilters(); f.companyMode=document.getElementById('hCompanyMode').value; f.companyValue=document.getElementById('hCompanyValue').value; f.notesMode=document.getElementById('hNotesMode').value; f.notesValue=document.getElementById('hNotesValue').value; f.qualDate=document.getElementById('hQualDate').value; f.nextActionMode=document.getElementById('hNextActionMode').value; f.nextActionValue=document.getElementById('hNextActionValue').value; f.nextStep=document.getElementById('hNextStep').value; save(); render(); }
     function shiftPeriod(step){ const d=new Date(currentCalDate()); if(currentCalView()==='month') d.setMonth(d.getMonth()+step); else if(currentCalView()==='quarter') d.setMonth(d.getMonth()+step*3); else d.setFullYear(d.getFullYear()+step); state.calDateByOwner[state.activeOwner]=d; render(); }
-    function switchWorkspace(ownerKey){ state.activeOwner = ownerKey; save(); render(); }
+    function switchWorkspace(ownerKey){ const displayedYear=currentForecastYear(); state.activeOwner = ownerKey; state.forecastYearByOwner[ownerKey]=displayedYear; save(); render(); }
     function switchSubTab(tabId){ state.activeTabsByOwner[state.activeOwner] = tabId; save(); render(); }
     function bind(){
       document.querySelectorAll('.text-sort-btn').forEach(btn=>btn.addEventListener('click',()=>cycleTextSort(btn.dataset.textSort,false)));
@@ -1725,6 +1750,9 @@
         e.target.value='';
       });
 
+      document.getElementById('forecastPrevYearBtn')?.addEventListener('click',()=>shiftForecastYear(-1));
+      document.getElementById('forecastNextYearBtn')?.addEventListener('click',()=>shiftForecastYear(1));
+      document.getElementById('forecastCurrentYearBtn')?.addEventListener('click',resetForecastYear);
       document.querySelectorAll('.forecast-add-btn').forEach(btn=>btn.addEventListener('click',()=>{
         const owner=state.activeOwner;
         const select=document.getElementById('forecastAddSelectJeremie');
