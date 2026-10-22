@@ -82,6 +82,12 @@
     .toolbar-row{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}
     .selection-banner{display:none;justify-content:space-between;align-items:center;gap:6px;background:#fff7f0;border:1px solid #ffd8b0;color:#8c4a00;border-radius:8px;padding:6px 8px;margin-bottom:6px;font-weight:900;font-size:.64rem}
     .selection-banner.show{display:flex}
+    .selection-actions{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+    .bulk-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    .bulk-field{border:1px solid var(--line);border-radius:8px;padding:7px;background:#fafafa}
+    .bulk-field .bulk-toggle{display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:.67rem;font-weight:900}
+    .bulk-field.disabled .bulk-control{opacity:.45;pointer-events:none}
+    .bulk-warning{margin-top:7px;padding:7px;border:1px solid #ffd8b0;background:#fff7f0;border-radius:8px;color:#8c4a00;font-size:.64rem;line-height:1.25}
     .table-wrap{overflow:auto;max-height:80vh;border-top:1px solid var(--line)}
     table{width:100%;border-collapse:separate;border-spacing:0;min-width:1200px}
     thead th{position:sticky;top:0;background:#fff;z-index:3;text-align:left;font-size:.66rem;padding:6px 5px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
@@ -387,7 +393,11 @@
             <div class="card-body">
               <div class="selection-banner" id="selectionBanner">
                 <div id="selectionText">Sélection active</div>
-                <button class="btn small" id="clearSelectionBtn" type="button">Effacer</button>
+                <div class="selection-actions">
+                  <button class="btn small primary" id="bulkEditBtn" type="button">Modifier en bulk</button>
+                  <button class="btn small danger" id="bulkDeleteBtn" type="button">Supprimer la sélection</button>
+                  <button class="btn small" id="clearSelectionBtn" type="button">Effacer</button>
+                </div>
               </div>
             </div>
             <div class="table-wrap">
@@ -532,6 +542,27 @@
     </div>
   </div>
 
+  <div class="overlay" id="bulkOverlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
+      <div class="modal-head">
+        <div><h3 class="modal-title" id="bulkTitle">Modifier la sélection en bulk</h3><div class="modal-sub" id="bulkSubtitle"></div></div>
+        <button class="close-btn" type="button" id="closeBulkBtn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="bulk-grid">
+          <div class="bulk-field"><label class="bulk-toggle"><input type="checkbox" data-bulk-enable="owner"> Modifier Owner</label><select class="bulk-control" id="bulkOwner" disabled><option value="Jérémie">Jérémie</option><option value="Anaïs">Anaïs</option></select></div>
+          <div class="bulk-field"><label class="bulk-toggle"><input type="checkbox" data-bulk-enable="product"> Modifier Produit</label><select class="bulk-control" id="bulkProduct" disabled><option value="">--</option><option value="LT">LT</option><option value="BC">BC</option><option value="MT">MT</option><option value="IT">IT</option></select></div>
+          <div class="bulk-field"><label class="bulk-toggle"><input type="checkbox" data-bulk-enable="status"> Modifier Statut</label><select class="bulk-control" id="bulkStatus" disabled><option value="">--</option><option value="SQL">SQL</option><option value="SQL to Nurture">SQL to Nurture</option><option value="RDV">RDV</option><option value="Chaud">Chaud</option><option value="A relancer">A relancer</option></select></div>
+          <div class="bulk-field"><label class="bulk-toggle"><input type="checkbox" data-bulk-enable="qualDate"> Modifier Date qualif.</label><input class="input bulk-control" id="bulkQualDate" type="date" disabled></div>
+          <div class="bulk-field"><label class="bulk-toggle"><input type="checkbox" data-bulk-enable="nextStep"> Modifier Next step</label><input class="input bulk-control" id="bulkNextStep" type="date" disabled></div>
+          <div class="bulk-field"><label class="bulk-toggle"><input type="checkbox" data-bulk-enable="nextAction"> Modifier Next action</label><input class="input bulk-control" id="bulkNextAction" type="text" placeholder="Nouvelle next action" disabled></div>
+          <div class="bulk-field" style="grid-column:1/-1"><label class="bulk-toggle"><input type="checkbox" data-bulk-enable="notes"> Modifier Notes</label><textarea class="bulk-control" id="bulkNotes" placeholder="Remplacer les notes des lignes sélectionnées" disabled></textarea></div>
+        </div>
+        <div class="bulk-warning">Seuls les champs cochés seront remplacés sur toutes les lignes sélectionnées. Un champ coché mais laissé vide effacera sa valeur.</div>
+        <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px"><button class="btn soft" type="button" id="cancelBulkBtn">Annuler</button><button class="btn primary" type="button" id="applyBulkBtn">Appliquer</button></div>
+      </div>
+    </div>
+  </div>
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
   <aside class="drawer" id="filterDrawer">
     <div class="drawer-head">
@@ -1564,6 +1595,30 @@
     function exportJSON(rows){ const blob=new Blob([JSON.stringify(rows,null,2)], {type:'application/json;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='dashboard_RDV_'+state.activeOwner+'.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
     function parseCsvLine(line){ const out=[]; let cur=''; let inQuotes=false; for(let i=0;i<line.length;i++){ const ch=line[i]; if(ch==='\"'){ if(inQuotes && line[i+1]==='\"'){ cur+='\"'; i++; } else { inQuotes=!inQuotes; } } else if(ch===';' && !inQuotes){ out.push(cur); cur=''; } else { cur+=ch; } } out.push(cur); return out; }
     function importCSVRowsFromText(csvText){ const lines=String(csvText||'').replace(/^\ufeff/, '').split(/\r?\n/).filter(line=>line.trim().length); if(lines.length<2) return []; const headers=parseCsvLine(lines[0]).map(h=>norm(h)); const idx={ company: headers.findIndex(h=>h==='entreprise'), owner: headers.findIndex(h=>h==='owner'), product: headers.findIndex(h=>h==='produit'), notes: headers.findIndex(h=>h==='notes'), qualDate: headers.findIndex(h=>h==='date qualif.' || h==='date qualif'), nextAction: headers.findIndex(h=>h==='next action'), nextStep: headers.findIndex(h=>h==='next step'), status: headers.findIndex(h=>h==='statut'), weight: headers.findIndex(h=>h==='ponderation' || h==='pondération'), selected: headers.findIndex(h=>h==='cochee' || h==='cochée') }; return lines.slice(1).map(line=>parseCsvLine(line)).filter(cols=>cols.some(v=>String(v).trim()!=='')).map(cols=>normalizeRow({ id: uid(), company: idx.company>=0 ? (cols[idx.company]||'').trim() : '', owner: idx.owner>=0 ? ((cols[idx.owner]||'').trim() || ownerValueFromKey(state.activeOwner)) : ownerValueFromKey(state.activeOwner), product: idx.product>=0 ? (cols[idx.product]||'').trim() : '', notes: idx.notes>=0 ? (cols[idx.notes]||'').trim() : '', qualDate: idx.qualDate>=0 ? (cols[idx.qualDate]||'').trim() : '', nextAction: idx.nextAction>=0 ? (cols[idx.nextAction]||'').trim() : '', nextStep: idx.nextStep>=0 ? (cols[idx.nextStep]||'').trim() : '', status: idx.status>=0 ? (cols[idx.status]||'').trim() : '', weight: idx.weight>=0 ? String(cols[idx.weight]||'').trim().replace(',', '.') : '', selected: idx.selected>=0 ? plain(cols[idx.selected])==='oui' : false, createdAt: Date.now() })); }
+    function getSelectedOwnerRows(){ return getOwnerRows().filter(r=>r.selected); }
+    function resetBulkForm(){
+      document.querySelectorAll('[data-bulk-enable]').forEach(cb=>{ cb.checked=false; const field=cb.closest('.bulk-field'); const ctl=field?.querySelector('.bulk-control'); if(ctl) ctl.disabled=true; field?.classList.add('disabled'); });
+      ['bulkQualDate','bulkNextStep','bulkNextAction','bulkNotes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+      const owner=document.getElementById('bulkOwner'); if(owner) owner.value=ownerValueFromKey(state.activeOwner);
+      const product=document.getElementById('bulkProduct'); if(product) product.value='';
+      const status=document.getElementById('bulkStatus'); if(status) status.value='';
+    }
+    function openBulkEditor(){ const rows=getSelectedOwnerRows(); if(!rows.length) return; resetBulkForm(); document.getElementById('bulkSubtitle').textContent=`${rows.length} ligne${rows.length>1?'s':''} sélectionnée${rows.length>1?'s':''}`; document.getElementById('bulkOverlay').classList.add('show'); }
+    function closeBulkEditor(){ document.getElementById('bulkOverlay').classList.remove('show'); }
+    async function applyBulkUpdate(){
+      const rows=getSelectedOwnerRows(); if(!rows.length){ closeBulkEditor(); return; }
+      const enabled=new Set([...document.querySelectorAll('[data-bulk-enable]:checked')].map(x=>x.dataset.bulkEnable));
+      if(!enabled.size){ alert('Coche au moins un champ à modifier.'); return; }
+      const updated=rows.map(src=>{ const r={...src}; if(enabled.has('owner')) r.owner=document.getElementById('bulkOwner').value; if(enabled.has('product')) r.product=document.getElementById('bulkProduct').value; if(enabled.has('status')){ r.status=normalizeStatusValue(document.getElementById('bulkStatus').value); r.weight=autoWeightForStatus(r.status); } if(enabled.has('qualDate')) r.qualDate=document.getElementById('bulkQualDate').value; if(enabled.has('nextStep')) r.nextStep=document.getElementById('bulkNextStep').value; if(enabled.has('nextAction')) r.nextAction=document.getElementById('bulkNextAction').value.trim(); if(enabled.has('notes')) r.notes=document.getElementById('bulkNotes').value.trim(); return normalizeRow(r); });
+      const results=await Promise.all(updated.map(saveRowToSupabase)); if(results.some(ok=>!ok)){ alert('Au moins une ligne n’a pas pu être modifiée. Recharge les données avant de recommencer.'); return; }
+      const map=new Map(updated.map(r=>[r.id,r])); state.rows=state.rows.map(r=>map.get(r.id)||r); save(); closeBulkEditor(); render(); await loadRowsFromSupabase();
+    }
+    async function bulkDeleteSelected(){
+      const rows=getSelectedOwnerRows(); if(!rows.length) return; if(!confirm(`Supprimer définitivement ${rows.length} ligne${rows.length>1?'s':''} sélectionnée${rows.length>1?'s':''} ?`)) return;
+      const ids=rows.map(r=>r.id); const { data,error }=await sb.from(SUPABASE_TABLE).delete().in('id',ids).select('id'); if(error){ console.error(error); alert('Impossible de supprimer la sélection dans Supabase : '+error.message); return; }
+      const deleted=new Set((data||[]).map(r=>r.id)); if(deleted.size!==ids.length){ alert(`Suppression incomplète : ${deleted.size} ligne(s) supprimée(s) sur ${ids.length}.`); await loadRowsFromSupabase(); return; }
+      state.rows=state.rows.filter(r=>!deleted.has(r.id)); if(deleted.has(currentSelectedId())) setCurrentSelectedId(null); save(); render(); await loadRowsFromSupabase();
+    }
     function openForm(){ document.getElementById('formOverlay').classList.add('show'); }
     function closeForm(){ document.getElementById('formOverlay').classList.remove('show'); }
     function openDrawer(){ document.getElementById('drawerBackdrop').classList.add('show'); document.getElementById('filterDrawer').classList.add('show'); }
@@ -1616,6 +1671,13 @@
       document.getElementById('drawerApplyBtn').addEventListener('click', closeDrawer);
       document.getElementById('clearFiltersBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); });
       document.getElementById('drawerClearBtn').addEventListener('click',()=>{ state.filtersByOwner[state.activeOwner]=defaultFilters(); save(); render(); });
+      document.getElementById('bulkEditBtn').addEventListener('click',openBulkEditor);
+      document.getElementById('bulkDeleteBtn').addEventListener('click',bulkDeleteSelected);
+      document.getElementById('closeBulkBtn').addEventListener('click',closeBulkEditor);
+      document.getElementById('cancelBulkBtn').addEventListener('click',closeBulkEditor);
+      document.getElementById('bulkOverlay').addEventListener('click',(e)=>{ if(e.target.id==='bulkOverlay') closeBulkEditor(); });
+      document.querySelectorAll('[data-bulk-enable]').forEach(cb=>cb.addEventListener('change',()=>{ const field=cb.closest('.bulk-field'); const ctl=field?.querySelector('.bulk-control'); if(ctl) ctl.disabled=!cb.checked; field?.classList.toggle('disabled',!cb.checked); }));
+      document.getElementById('applyBulkBtn').addEventListener('click',applyBulkUpdate);
       document.getElementById('clearSelectionBtn').addEventListener('click',()=>{
         state.rows=state.rows.map(r=>ownerKeyFromValue(r.owner)===state.activeOwner ? ({...r, selected:false}) : r);
         save();
